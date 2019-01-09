@@ -5,12 +5,15 @@ defmodule Auctoritas.Application do
 
   use Application
 
+  alias Auctoritas.Config
+
   def start(_type, _args) do
     # List all child processes to be supervised
+    config = Config.read()
     children = [
       # Starts a worker by calling: Auctoritas.Worker.start_link(arg)
       # {Auctoritas.Worker, arg},
-      {Auctoritas.AuthenticationSupervisor, []}
+      {Auctoritas.AuthenticationSupervisor, config}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

@@ -46,7 +46,7 @@ defmodule AuctoritasTest.ConfigTest do
 
   test "read config from test.exs config file" do
     assert Config.read() == %Config{
-             name: "test_name",
+             name: "auctoritas_default",
              data_storage: DataStorage,
              token_manager: TokenManager
            }

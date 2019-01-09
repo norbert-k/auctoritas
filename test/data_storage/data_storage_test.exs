@@ -3,8 +3,10 @@ defmodule AuctoritasTest.DataStorageTest do
 
   alias Auctoritas.AuthenticationManager.DataStorage
   alias Auctoritas.AuthenticationSupervisor
+  alias Auctoritas.Config
 
-  @default_supervisor AuthenticationSupervisor.start_link(:ok)
+  @config Config.read()
+  @default_supervisor AuthenticationSupervisor.start_link(@config)
 
   test "insert data into data_storage" do
     assert DataStorage.insert_data("sample_token", "sample_data") == {:ok, true}
