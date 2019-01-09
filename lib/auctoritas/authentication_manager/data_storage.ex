@@ -5,6 +5,7 @@ defmodule Auctoritas.AuthenticationManager.DataStorage do
 
   alias Auctoritas.Config
 
+  @default_name "auctoritas_default"
   @cachex_default_name :auctoritas_default_cachex_storage
 
   @type token() :: String.t()
@@ -18,10 +19,10 @@ defmodule Auctoritas.AuthenticationManager.DataStorage do
       id: Cachex,
       start:
         {Cachex, :start_link,
-        [
-          cachex_name(config.name),
-          []
-        ]}
+         [
+           cachex_name(config.name),
+           []
+         ]}
     }
   end
 
@@ -29,18 +30,14 @@ defmodule Auctoritas.AuthenticationManager.DataStorage do
   Generate Cachex atom
   """
   defp cachex_name(name) when is_bitstring(name) do
-    name <> "_cachex_storage"
+    (name <> "_cachex_storage")
     |> String.to_atom()
   end
 
   @callback insert_data(name(), token(), any()) :: {atom(), any()}
   @spec insert_data(token(), any()) :: {atom(), any()}
   def insert_data(token, data) when is_bitstring(token) do
-    Cachex.execute(@cachex_default_name, fn cache ->
-
-      Cachex.put(cache, token, data)
-      Cachex.expire(cache, token, :timer.seconds(60))
-    end)
+    insert_data(@default_name, token, data)
   end
 
   @doc """
@@ -54,7 +51,6 @@ defmodule Auctoritas.AuthenticationManager.DataStorage do
   @spec insert_data(name(), token(), any()) :: {atom(), any()}
   def insert_data(name, token, data) when is_bitstring(token) and is_bitstring(name) do
     Cachex.execute(cachex_name(name), fn cache ->
-
       Cachex.put(cache, token, data)
       Cachex.expire(cache, token, :timer.seconds(60))
     end)
@@ -63,9 +59,7 @@ defmodule Auctoritas.AuthenticationManager.DataStorage do
   @callback delete_token(name(), token()) :: {atom(), any()}
   @spec delete_token(token()) :: {atom(), any()}
   def delete_token(token) when is_bitstring(token) do
-    Cachex.execute(@cachex_default_name, fn cache ->
-      Cachex.del(cache, token)
-    end)
+    delete_token(@default_name, token)
   end
 
   @doc """
@@ -85,24 +79,7 @@ defmodule Auctoritas.AuthenticationManager.DataStorage do
   @callback get_tokens_with_data(name(), non_neg_integer(), non_neg_integer()) :: {atom(), any()}
   @spec get_tokens_with_data(non_neg_integer(), non_neg_integer()) :: {atom(), any()}
   def get_tokens_with_data(start, amount) when is_number(start) and is_number(amount) do
-    query = Cachex.Query.create(true, { :key, :value })
-
-    case Cachex.stream(@cachex_default_name, query) do
-      {:ok, data} ->
-        data
-        |> Enum.to_list()
-        |> Enum.slice(start, amount)
-        |> Enum.map(fn(token) ->
-          {:ok, expires} = token_expires?(elem(token, 0))
-
-          %{
-          token: elem(token, 0),
-          value: elem(token, 1),
-          expiration: expires
-          }
-        end)
-        {:ok, data}
-    end
+    get_tokens_with_data(@default_name, start, amount)
   end
 
   @doc """
@@ -114,15 +91,16 @@ defmodule Auctoritas.AuthenticationManager.DataStorage do
   * Amount: Amount of tokens to take from list
   """
   @spec get_tokens_with_data(name(), non_neg_integer(), non_neg_integer()) :: {atom(), any()}
-  def get_tokens_with_data(name, start, amount) when is_number(start) and is_number(amount) and is_bitstring(name) do
-    query = Cachex.Query.create(true, { :key, :value })
+  def get_tokens_with_data(name, start, amount)
+      when is_number(start) and is_number(amount) and is_bitstring(name) do
+    query = Cachex.Query.create(true, {:key, :value})
 
     case Cachex.stream(cachex_name(name), query) do
       {:ok, data} ->
         data
         |> Enum.to_list()
         |> Enum.slice(start, amount)
-        |> Enum.map(fn(token) ->
+        |> Enum.map(fn token ->
           {:ok, expires} = token_expires?(elem(token, 0))
 
           %{
@@ -131,6 +109,7 @@ defmodule Auctoritas.AuthenticationManager.DataStorage do
             expiration: expires
           }
         end)
+
         {:ok, data}
     end
   end
@@ -138,15 +117,7 @@ defmodule Auctoritas.AuthenticationManager.DataStorage do
   @callback get_tokens(name(), non_neg_integer(), non_neg_integer()) :: {atom(), any()}
   @spec get_tokens(non_neg_integer(), non_neg_integer()) :: {atom(), any()}
   def get_tokens(start, amount) do
-    query = Cachex.Query.create(true, :key)
-
-    case Cachex.stream(@cachex_default_name, query) do
-      {:ok, data} ->
-        data = data
-        |> Enum.to_list()
-        |> Enum.slice(start, amount)
-        {:ok, data}
-    end
+    get_tokens(@default_name, start, amount)
   end
 
   @doc """
@@ -163,9 +134,11 @@ defmodule Auctoritas.AuthenticationManager.DataStorage do
 
     case Cachex.stream(cachex_name(name), query) do
       {:ok, data} ->
-        data = data
-               |> Enum.to_list()
-               |> Enum.slice(start, amount)
+        data =
+          data
+          |> Enum.to_list()
+          |> Enum.slice(start, amount)
+
         {:ok, data}
     end
   end
@@ -173,7 +146,7 @@ defmodule Auctoritas.AuthenticationManager.DataStorage do
   @callback get_token_data(name(), token()) :: {atom(), any()}
   @spec get_token_data(token()) :: {atom(), any()}
   def get_token_data(token) when is_bitstring(token) do
-    Cachex.get(@cachex_default_name, token)
+    get_token_data(@default_name, token)
   end
 
   @doc """
@@ -191,10 +164,7 @@ defmodule Auctoritas.AuthenticationManager.DataStorage do
   @callback token_exists?(name(), token()) :: boolean()
   @spec token_exists?(token()) :: boolean()
   def token_exists?(token) when is_bitstring(token) do
-    case get_token_data(token) do
-      {:ok, nil} -> false
-      {:ok, _token} -> true
-    end
+    token_exists?(@default_name, token)
   end
 
   @doc """
@@ -215,7 +185,7 @@ defmodule Auctoritas.AuthenticationManager.DataStorage do
   @callback token_expires?(name(), token()) :: {atom(), any()}
   @spec token_expires?(token()) :: {atom(), any()}
   def token_expires?(token) when is_bitstring(token) do
-    Cachex.ttl(@cachex_default_name, token)
+    token_expires?(@default_name, token)
   end
 
   @doc """
@@ -228,5 +198,26 @@ defmodule Auctoritas.AuthenticationManager.DataStorage do
   @spec token_expires?(name(), token()) :: {atom(), any()}
   def token_expires?(name, token) when is_bitstring(token) and is_bitstring(name) do
     Cachex.ttl(cachex_name(name), token)
+  end
+
+  @doc """
+  Check for collisions
+
+  Arguments:
+  * Name: Name from config
+  * Token: Generated token
+  """
+  @spec check_collision(name(), token()) :: boolean()
+  def check_collision(name, token) when is_bitstring(name) and is_bitstring(token) do
+    case get_token_data(name, token) do
+      {:ok, nil} -> false
+      {:ok, data} -> true
+      {:error, error} -> false
+    end
+  end
+
+  @spec check_collision(token()) :: boolean()
+  def check_collision(token) when is_bitstring(token) do
+    check_collision(@default_name, token)
   end
 end

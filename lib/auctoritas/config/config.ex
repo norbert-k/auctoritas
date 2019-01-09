@@ -51,6 +51,7 @@ defmodule Auctoritas.Config do
   @spec read() :: %Auctoritas.Config{}
   def read() do
     config_settings = Application.get_env(@config_key, :config)
+
     case config_settings do
       nil -> new()
       config_settings -> new(config_settings)

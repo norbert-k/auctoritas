@@ -9,7 +9,7 @@ defmodule Auctoritas.AuthenticationSupervisor do
   end
 
   defp supervisor_name(%Config{} = config) do
-    config.name <> "_auctoritas_supervisor"
+    (config.name <> "_auctoritas_supervisor")
     |> String.to_atom()
   end
 

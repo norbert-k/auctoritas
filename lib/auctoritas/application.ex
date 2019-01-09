@@ -10,6 +10,7 @@ defmodule Auctoritas.Application do
   def start(_type, _args) do
     # List all child processes to be supervised
     config = Config.read()
+
     children = [
       # Starts a worker by calling: Auctoritas.Worker.start_link(arg)
       # {Auctoritas.Worker, arg},
