@@ -10,7 +10,7 @@ defmodule Auctoritas.TokenGenerator do
       iex> Auctoritas.TokenManager.generate_token()
       "nD3xJccmcHsm6F3cBt3yx6oVr2brCmotrSRXnI3sITo="
   """
-  @spec generate_token() :: String.t
+  @spec generate_token() :: String.t()
   def generate_token() do
     generate_token(32)
   end
@@ -24,8 +24,8 @@ defmodule Auctoritas.TokenGenerator do
       iex> Auctoritas.TokenManager.generate_token(32)
       "iuwBlPj5q/BYazWH1dr12mja3Q7ZvRV122PuTKIaywg="
   """
-  @spec generate_token(non_neg_integer()) :: String.t
-  def generate_token(length) when is_number(length)  do
+  @spec generate_token(non_neg_integer()) :: String.t()
+  def generate_token(length) when is_number(length) do
     SecureRandom.hex(length)
   end
 end

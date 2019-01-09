@@ -1,6 +1,5 @@
 defmodule AuctoritasTest.ConfigTest do
   use ExUnit.Case, async: true
-  doctest Auctoritas
 
   alias Auctoritas.Config
 
@@ -14,7 +13,11 @@ defmodule AuctoritasTest.ConfigTest do
   end
 
   test "generate default config" do
-    assert Config.new() == %Config{name: "auctoritas_default", data_storage: DataStorage, token_manager: TokenManager}
+    assert Config.new() == %Config{
+             name: "auctoritas_default",
+             data_storage: DataStorage,
+             token_manager: TokenManager
+           }
   end
 
   test "generate config with custom parameters" do
@@ -22,12 +25,30 @@ defmodule AuctoritasTest.ConfigTest do
     config_with_custom_data_storage = Config.new(data_storage: DummyDataStorage)
     config_with_custom_token_manager = Config.new(token_manager: DummyTokenManager)
 
-    assert config_with_custom_name == %Config{name: "custom_name", data_storage: DataStorage, token_manager: TokenManager}
-    assert config_with_custom_data_storage == %Config{name: "auctoritas_default", data_storage: DummyDataStorage, token_manager: TokenManager}
-    assert config_with_custom_token_manager == %Config{name: "auctoritas_default", data_storage: DataStorage, token_manager: DummyTokenManager}
+    assert config_with_custom_name == %Config{
+             name: "custom_name",
+             data_storage: DataStorage,
+             token_manager: TokenManager
+           }
+
+    assert config_with_custom_data_storage == %Config{
+             name: "auctoritas_default",
+             data_storage: DummyDataStorage,
+             token_manager: TokenManager
+           }
+
+    assert config_with_custom_token_manager == %Config{
+             name: "auctoritas_default",
+             data_storage: DataStorage,
+             token_manager: DummyTokenManager
+           }
   end
 
-  test "generate config with invalid parameters" do
-
+  test "read config from test.exs config file" do
+    assert Config.read() == %Config{
+             name: "test_name",
+             data_storage: DataStorage,
+             token_manager: TokenManager
+           }
   end
 end

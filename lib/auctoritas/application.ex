@@ -10,6 +10,7 @@ defmodule Auctoritas.Application do
     children = [
       # Starts a worker by calling: Auctoritas.Worker.start_link(arg)
       # {Auctoritas.Worker, arg},
+      {Auctoritas.AuthenticationSupervisor, []}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

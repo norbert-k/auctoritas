@@ -1,6 +1,5 @@
 defmodule AuctoritasTest.TokenGeneratorTest do
   use ExUnit.Case, async: true
-  doctest Auctoritas
 
   alias Auctoritas.TokenGenerator
 
@@ -10,7 +9,7 @@ defmodule AuctoritasTest.TokenGeneratorTest do
 
   test "generates custom length token" do
     1..10
-    |> Enum.each(fn(_) ->
+    |> Enum.each(fn _ ->
       random_number = :rand.uniform(64)
       expected_length = random_number * 2
       assert String.length(TokenGenerator.generate_token(random_number)) == expected_length

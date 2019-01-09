@@ -5,7 +5,13 @@ defmodule Auctoritas.Config do
   alias Auctoritas.AuthenticationManager.DataStorage
   alias Auctoritas.AuthenticationManager.TokenManager
 
-  @config_defaults [name: "auctoritas_default", data_storage: DataStorage, token_manager: TokenManager]
+  @config_defaults [
+    name: "auctoritas_default",
+    data_storage: DataStorage,
+    token_manager: TokenManager
+  ]
+
+  @config_key :auctoritas
 
   @doc """
   Create new config for Auctoritas
@@ -22,13 +28,29 @@ defmodule Auctoritas.Config do
         data_storage: Auctoritas.AuthenticationManager.DataStorage,
         token_manager: Auctoritas.AuthenticationManager.TokenManager
       }
+
+      iex> Auctoritas.Config.new(name: "custom_name")
+      %Auctoritas.Config{
+        name: "custom_name",
+        data_storage: Auctoritas.AuthenticationManager.DataStorage,
+        token_manager: Auctoritas.AuthenticationManager.TokenManager
+      }
   """
   @spec new([]) :: %Auctoritas.Config{}
   def new(options \\ []) when is_list(options) do
-    options = Keyword.merge(@config_defaults, options)
-    |> Enum.into(%{})
+    options =
+      Keyword.merge(@config_defaults, options)
+      |> Enum.into(%{})
 
     struct(__MODULE__, options)
   end
 
+  @doc """
+  Read Auctoritas config from config files
+  """
+  @spec read() :: %Auctoritas.Config{}
+  def read() do
+    Application.get_env(@config_key, :config)
+    |> new()
+  end
 end

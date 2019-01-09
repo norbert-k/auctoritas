@@ -1,3 +1,2 @@
 defmodule Auctoritas.AuthenticationManager do
-
 end
