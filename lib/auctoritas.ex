@@ -1,18 +1,5 @@
 defmodule Auctoritas do
   @moduledoc """
-  Documentation for Auctoritas.
+  Auctoritas is a session like authentication library for Phoenix/Elixir applications
   """
-
-  @doc """
-  Hello world.
-
-  ## Examples
-
-      iex> Auctoritas.hello()
-      :world
-
-  """
-  def hello do
-    :world
-  end
 end
