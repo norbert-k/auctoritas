@@ -1,6 +1,6 @@
 defmodule Auctoritas.Config do
-  @enforce_keys [:name, :secret_key, :data_storage, :token_manager]
-  defstruct [:name, :secret_key, :data_storage, :token_manager]
+  @enforce_keys [:name, :data_storage, :token_manager]
+  defstruct [:name, :data_storage, :token_manager]
 
   alias Auctoritas.AuthenticationManager.DataStorage
   alias Auctoritas.AuthenticationManager.TokenManager
@@ -16,10 +16,9 @@ defmodule Auctoritas.Config do
   * token_manager: Token manager module to generate and read tokens. (DEFAULT value exists)
 
   ## Examples
-      iex> Auctoritas.Config.new(secret_key: "super_secret_key")
+      iex> Auctoritas.Config.new()
       %Auctoritas.Config{
         name: "auctoritas_default",
-        secret_key: "super_secret_key",
         data_storage: Auctoritas.AuthenticationManager.DataStorage,
         token_manager: Auctoritas.AuthenticationManager.TokenManager
       }
