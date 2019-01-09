@@ -1,0 +1,3 @@
+defmodule Auctoritas.AuthenticationManager.DataStorage do
+
+end
