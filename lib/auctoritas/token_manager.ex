@@ -3,6 +3,6 @@ defmodule Auctoritas.TokenManager do
   @type name() :: String.t()
 
   @callback generate_token(name(), any()) :: {atom(), token()}
-  @callback authentification_data_check(name(), any()) :: {atom(), any()}
+  @callback authentication_data_check(name(), any()) :: {atom(), any()}
   @callback data_check(name(), any()) :: {atom(), any()}
 end

@@ -14,8 +14,8 @@ defmodule Auctoritas.AuthenticationManager.TokenManager do
         {:ok, TokenGenerator.generate_token()}
       end
 
-      @spec authentification_data_check(name(), map()) :: {atom(), any()}
-      def authentification_data_check(name, data) when is_bitstring(name) and is_map(data) do
+      @spec authentication_data_check(name(), map()) :: {atom(), any()}
+      def authentication_data_check(name, data) when is_bitstring(name) and is_map(data) do
         {:ok, data}
       end
 
@@ -24,7 +24,7 @@ defmodule Auctoritas.AuthenticationManager.TokenManager do
         {:ok, data}
       end
 
-      defoverridable generate_token: 2, authentification_data_check: 2, data_check: 2
+      defoverridable generate_token: 2, authentication_data_check: 2, data_check: 2
     end
   end
 end

@@ -40,8 +40,46 @@ iex> {:ok, data} = Auth.get_token_data(token)
      updated_at: 1547158890
    }
  }}
+ 
+ iex> {:ok, data} = Auth.deauthenticate(token)
+ {:ok, true}
 ```
 
+## Configuration
+```elixir
+config :auctoritas, :config,
+    name: "auctoritas_default", # Custom name if you need multiple auctoritas authentication managers
+    data_storage: Auctoritas.AuthenticationManager.DataStorage, # Custom data_storage implementation (default is Cachex)
+    token_manager: Auctoritas.AuthenticationManager.DefaultTokenManager, # Custom token_manager implementation
+    expiration: 86400 # Token expiration timer in second
+
+```
+
+## Spawning Auctoritas authentication managers
+```elixir
+iex> alias Auctoritas.AuthenticationManager, as: Auth
+Auctoritas.AuthenticationManager
+
+iex> alias Auctoritas.Config
+Auctoritas.Config
+
+iex> config = Config.new(name: "custom_name", token_manager: CustomTokenManager, expiration: 120)
+%Auctoritas.Config{
+  data_storage: Auctoritas.AuthenticationManager.DataStorage,
+  expiration: 120,
+  name: "custom_name",
+  token_manager: CustomTokenManager
+}
+
+iex> alias Auctoritas.AuthenticationSupervisor
+Auctoritas.AuthenticationSupervisor
+
+iex> AuthenticationSupervisor.start_link(config)
+{:ok, #PID<0.278.0>}
+
+iex> {:ok, token} = Auth.authenticate("custom_name", %{username: "username"}, %{})
+{:ok, "3acbc9f1362ba9fb09fc3db6e4e1f6cfa5fcd2738156d11461cab3bd0ed92940"}
+```
 
 ## Implementing token_manager
 For custom token_manager you need to implement `Auctoritas.TokenManager` behaviour
