@@ -5,13 +5,13 @@ defmodule Auctoritas.AuthenticationManager.TokenManager do
   @type token() :: String.t()
 
   @callback generate_token(any()) :: {atom(), token()}
-  @spec generate_token(any()) :: {atom(), token()}
+  @spec generate_token(map()) :: {atom(), token()}
   def generate_token(_data) do
     {:ok, TokenGenerator.generate_token()}
   end
 
   @callback authentification_data_check(any()) :: {atom(), any()}
-  @spec authentification_data_check(any()) :: {atom(), any()}
+  @spec authentification_data_check(map()) :: {atom(), map()}
   def authentification_data_check(data) do
     case data do
       nil -> {:error, "Data is nil"}
@@ -20,7 +20,7 @@ defmodule Auctoritas.AuthenticationManager.TokenManager do
   end
 
   @callback data_check(any()) :: {atom(), any()}
-  @spec data_check(any()) :: {atom(), any()}
+  @spec data_check(map()) :: {atom(), map()}
   def data_check(data) do
     case data do
       nil -> {:error, "Data is nil"}
@@ -29,19 +29,19 @@ defmodule Auctoritas.AuthenticationManager.TokenManager do
   end
 
   @callback authenticate(any(), any()) :: {atom(), token(), any()}
-  @spec authenticate(any(), any()) :: {atom(), token(), any()}
+  @spec authenticate(map(), map()) :: {atom(), token(), map()}
   def authenticate(authentification_data, saved_data) do
     with {:ok, authentification_data} <- authentification_data_check(authentification_data),
          {:ok, data} <- data_check(saved_data) do
       {:ok, token} = generate_token(data)
-      DataStorage.insert_data(token, data)
+      DataStorage.insert_token(token, data)
       {:ok, token, data}
     else
       {:error, error} -> {:error, error}
     end
   end
 
-  @spec login(any(), any()) :: {atom(), token(), any()}
+  @spec login(map(), map()) :: {atom(), token(), map()}
   def login(authentification_data, saved_data) do
     authenticate(authentification_data, saved_data)
   end
@@ -60,7 +60,7 @@ defmodule Auctoritas.AuthenticationManager.TokenManager do
     deauthenticate(token)
   end
 
-  @callback get_token_data(token()) :: {atom(), any(), number()}
+  @callback get_token_data(token()) :: {atom(), map(), number()}
   @spec get_token_data(token()) :: {atom(), any()}
   def get_token_data(token) when is_bitstring(token) do
     with {:ok, token_data} <- DataStorage.get_token_data(token),
