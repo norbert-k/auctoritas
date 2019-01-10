@@ -15,7 +15,8 @@ defmodule Auctoritas.AuthenticationSupervisor do
 
   def init(%Config{} = config) do
     children = [
-      DataStorage.worker(config)
+      DataStorage.worker(config),
+      {Auctoritas.AuthenticationManager, config}
     ]
 
     Supervisor.init(children, strategy: :one_for_one)
