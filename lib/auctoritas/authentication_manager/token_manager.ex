@@ -14,11 +14,6 @@ defmodule Auctoritas.AuthenticationManager.TokenManager do
         {:ok, TokenGenerator.generate_token()}
       end
 
-      @spec datamanager(name()) :: {atom(), DataStorage}
-      def datamanager(name) when is_bitstring(name) do
-        {:ok, DataStorage}
-      end
-
       @spec authentification_data_check(name(), map()) :: {atom(), any()}
       def authentification_data_check(name, data) when is_bitstring(name) and is_map(data) do
         {:ok, data}
@@ -28,6 +23,8 @@ defmodule Auctoritas.AuthenticationManager.TokenManager do
       def data_check(name, data) when is_bitstring(name) and is_map(data) do
         {:ok, data}
       end
+
+      defoverridable [generate_token: 2, authentification_data_check: 2, data_check: 2]
     end
   end
 end

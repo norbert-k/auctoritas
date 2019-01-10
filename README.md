@@ -40,5 +40,38 @@ iex> {:ok, data} = Auth.get_token_data(token)
      updated_at: 1547158890
    }
  }}
+```
 
+
+## Implementing token_manager
+For custom token_manager you need to implement `Auctoritas.TokenManager` behaviour
+```elixir
+defmodule Auctoritas.TokenManager do
+  @type token() :: String.t()
+  @type name() :: String.t()
+
+  @callback generate_token(name(), any()) :: {atom(), token()}
+  @callback authentification_data_check(name(), any()) :: {atom(), any()}
+  @callback data_check(name(), any()) :: {atom(), any()}
+end
+```
+Simplest way to implement `Auctoritas.TokenManager` behaviour is to inject default TokenManager into your own module with `__using__` macro
+```elixir
+defmodule CustomTokenManager do
+  use Auctoritas.AuthenticationManager.TokenManager
+end
+```
+Now you can override default functions to suit your own needs
+```elixir
+defmodule CustomTokenManager do
+  use Auctoritas.AuthenticationManager.TokenManager
+  
+    @spec authentification_data_check(name(), map()) :: {atom(), any()}
+    def authentification_data_check(name, data) when is_bitstring(name) and is_map(data) do
+        case data do
+          %{password: "secret_password"} -> {:ok, data}
+          _ -> {:error, "Invalid user credentials"}
+        end
+    end
+end
 ```
