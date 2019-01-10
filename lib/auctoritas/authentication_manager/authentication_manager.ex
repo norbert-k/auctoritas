@@ -15,12 +15,12 @@ defmodule Auctoritas.AuthenticationManager do
   end
 
   defp auctoritas_name(name) when is_bitstring(name) do
-    "auctoritas_authentication_manager_" <> name
+    ("auctoritas_authentication_manager_" <> name)
     |> String.to_atom()
   end
 
   defp auctoritas_name(%Config{} = config) do
-    "auctoritas_authentication_manager_" <> config.name
+    ("auctoritas_authentication_manager_" <> config.name)
     |> String.to_atom()
   end
 
@@ -51,15 +51,22 @@ defmodule Auctoritas.AuthenticationManager do
   end
 
   defp authenticate_check(config, authentification_data, data) do
-    with {:ok, authentification_data} <- config.token_manager.authentification_data_check(config.name, authentification_data),
+    with {:ok, authentification_data} <-
+           config.token_manager.authentification_data_check(config.name, authentification_data),
          {:ok, data} <- config.token_manager.data_check(config.name, data),
          {:ok, token} <- config.token_manager.generate_token(config.name, data) do
-      case config.data_storage.insert_token(config.name, config.expiration, token, data, default_metadata()) do
+      case config.data_storage.insert_token(
+             config.name,
+             config.expiration,
+             token,
+             data,
+             default_metadata()
+           ) do
         {:ok, data} -> {:ok, token, data}
         {:error, error} -> {:error, error}
       end
     else
-      {:error,error} -> {:error, error}
+      {:error, error} -> {:error, error}
     end
   end
 
@@ -111,7 +118,9 @@ defmodule Auctoritas.AuthenticationManager do
     case authenticate_check(config, authentification_data, data) do
       {:ok, token, data} ->
         {:reply, {:ok, token, data}, config}
-      {:error, error} -> {:reply, {:error, error}, config}
+
+      {:error, error} ->
+        {:reply, {:error, error}, config}
     end
   end
 
@@ -119,7 +128,9 @@ defmodule Auctoritas.AuthenticationManager do
     case get_token_data_from_data_store(config, token) do
       {:ok, data} ->
         {:reply, {:ok, data}, config}
-      {:error, error} -> {:reply, {:error, error}, config}
+
+      {:error, error} ->
+        {:reply, {:error, error}, config}
     end
   end
 
@@ -127,10 +138,9 @@ defmodule Auctoritas.AuthenticationManager do
     case delete_token_from_data_store(config, token) do
       {:ok, data} ->
         {:reply, {:ok, data}, config}
-      {:error, error} -> {:reply, {:error, error}, config}
+
+      {:error, error} ->
+        {:reply, {:error, error}, config}
     end
-
   end
-
-
 end

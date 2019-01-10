@@ -24,7 +24,7 @@ defmodule Auctoritas.AuthenticationManager.TokenManager do
         {:ok, data}
       end
 
-      defoverridable [generate_token: 2, authentification_data_check: 2, data_check: 2]
+      defoverridable generate_token: 2, authentification_data_check: 2, data_check: 2
     end
   end
 end

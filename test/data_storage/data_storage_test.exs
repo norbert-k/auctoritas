@@ -12,7 +12,14 @@ defmodule AuctoritasTest.DataStorageTest do
   @default_expiration 8000
 
   test "insert data into data_storage" do
-    assert DataStorage.insert_token(@default_name, @default_expiration, "sample_token", %{sample: "data"}, %{sample: "metadata"}) == {:ok, true}
+    assert DataStorage.insert_token(
+             @default_name,
+             @default_expiration,
+             "sample_token",
+             %{sample: "data"},
+             %{sample: "metadata"}
+           ) == {:ok, true}
+
     {:ok, token_data} = DataStorage.get_token_data(@default_name, "sample_token")
     assert token_data.data == %{sample: "data"}
     assert token_data.metadata.sample == "metadata"
