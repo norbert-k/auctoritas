@@ -9,7 +9,6 @@ defmodule Auctoritas.AuthenticationManager.DataStorage do
 
   alias Auctoritas.Config
 
-  @default_name "auctoritas_default"
   @cachex_default_name :auctoritas_default_cachex_storage
 
   @type token() :: String.t()
@@ -39,11 +38,6 @@ defmodule Auctoritas.AuthenticationManager.DataStorage do
     |> String.to_atom()
   end
 
-  @spec insert_token(token(), map()) :: {atom(), any()}
-  def insert_token(token, data) when is_bitstring(token) do
-    insert_token(@default_name, token, data)
-  end
-
   @doc """
   Insert data into storage
 
@@ -61,6 +55,14 @@ defmodule Auctoritas.AuthenticationManager.DataStorage do
     end)
   end
 
+  @doc """
+  Update token data
+
+  Arguments:
+  * Name: Name from config
+  * Token: Generated token
+  * Data: Data to update (Map.Merge)
+  """
   @spec update_token(name(), token(), map()) :: {atom(), any()}
   def update_token(name, token, data) when is_bitstring(name) and is_bitstring(token) do
     Logger.info("Updated data in [#{name}] cache, token:#{token}}", [additional: data])
@@ -72,11 +74,6 @@ defmodule Auctoritas.AuthenticationManager.DataStorage do
         {:error, error} -> {:error, error}
       end
     end)
-  end
-
-  @spec delete_token(token()) :: {atom(), any()}
-  def delete_token(token) when is_bitstring(token) do
-    delete_token(@default_name, token)
   end
 
   @doc """
@@ -92,11 +89,6 @@ defmodule Auctoritas.AuthenticationManager.DataStorage do
     Cachex.execute(cachex_name(name), fn cache ->
       Cachex.del(cache, token)
     end)
-  end
-
-  @spec get_tokens_with_data(non_neg_integer(), non_neg_integer()) :: {atom(), any()}
-  def get_tokens_with_data(start, amount) when is_number(start) and is_number(amount) do
-    get_tokens_with_data(@default_name, start, amount)
   end
 
   @doc """
@@ -119,7 +111,7 @@ defmodule Auctoritas.AuthenticationManager.DataStorage do
         |> Enum.to_list()
         |> Enum.slice(start, amount)
         |> Enum.map(fn token ->
-          {:ok, expires} = token_expires?(elem(token, 0))
+          {:ok, expires} = token_expires?(name, elem(token, 0))
 
           %{
             token: elem(token, 0),
@@ -130,11 +122,6 @@ defmodule Auctoritas.AuthenticationManager.DataStorage do
 
         {:ok, data}
     end
-  end
-
-  @spec get_tokens(non_neg_integer(), non_neg_integer()) :: {atom(), any()}
-  def get_tokens(start, amount) do
-    get_tokens(@default_name, start, amount)
   end
 
   @doc """
@@ -159,11 +146,6 @@ defmodule Auctoritas.AuthenticationManager.DataStorage do
 
         {:ok, data}
     end
-  end
-
-  @spec get_token_data(token()) :: {atom(), any()}
-  def get_token_data(token) when is_bitstring(token) do
-    get_token_data(@default_name, token)
   end
 
   @doc """
@@ -194,15 +176,10 @@ defmodule Auctoritas.AuthenticationManager.DataStorage do
   @spec token_exists?(name(), token()) :: boolean()
   def token_exists?(name, token) when is_bitstring(token) and is_bitstring(name) do
     Logger.info("Checking if token exists from [#{name}] cache, token:#{token}")
-    case get_token_data(token) do
+    case get_token_data(name, token) do
       {:ok, nil} -> false
       {:ok, _token} -> true
     end
-  end
-
-  @spec token_expires?(token()) :: {atom(), any()}
-  def token_expires?(token) when is_bitstring(token) do
-    token_expires?(@default_name, token)
   end
 
   @doc """
@@ -235,8 +212,4 @@ defmodule Auctoritas.AuthenticationManager.DataStorage do
     end
   end
 
-  @spec check_collision(token()) :: boolean()
-  def check_collision(token) when is_bitstring(token) do
-    check_collision(@default_name, token)
-  end
 end
