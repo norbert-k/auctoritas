@@ -27,14 +27,16 @@ defmodule Auctoritas.Config do
       %Auctoritas.Config{
         name: "auctoritas_default",
         data_storage: Auctoritas.AuthenticationManager.DataStorage,
-        token_manager: Auctoritas.AuthenticationManager.TokenManager
+        token_manager: Auctoritas.AuthenticationManager.TokenManager,
+        expiration: 86400
       }
 
       iex> Auctoritas.Config.new(name: "custom_name")
       %Auctoritas.Config{
         name: "custom_name",
         data_storage: Auctoritas.AuthenticationManager.DataStorage,
-        token_manager: Auctoritas.AuthenticationManager.TokenManager
+        token_manager: Auctoritas.AuthenticationManager.TokenManager,
+        expiration: 86400
       }
   """
   @spec new([]) :: %Auctoritas.Config{}
