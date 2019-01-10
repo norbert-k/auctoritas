@@ -1,4 +1,38 @@
 defmodule Auctoritas.AuthenticationManager.DataStorage do
+
+  defmodule Data do
+    @enforce_keys [:data, :metadata]
+    defstruct [:data, :metadata]
+
+    def new(data_map) when is_map(data_map) do
+      struct(__MODULE__, data_map)
+    end
+
+    def new(data, metadata) when is_map(data) and is_map(metadata) do
+      %{
+        data: data,
+        metadata: metadata
+      }
+    end
+
+    def update_data(%__MODULE__{} = data, new_data) when is_map(new_data) do
+      data
+      |> update_metadata(%{
+        updated_at: System.system_time(:second)
+      })
+      |> Map.put(:data, Map.merge(data.data, new_data))
+    end
+
+    def update_metadata(%__MODULE__{} = data, new_metadata) when is_map(new_metadata) do
+      Map.put(data, :metadata, Map.merge(data.metadata, new_metadata))
+    end
+
+    def add_expiration(%__MODULE__{} = data, expiration) when is_number(expiration) do
+      data
+      |> update_metadata(%{expires_in: expiration})
+    end
+  end
+
   @behaviour Auctoritas.DataStorage
 
   require Logger
@@ -46,12 +80,12 @@ defmodule Auctoritas.AuthenticationManager.DataStorage do
   * Token: Generated token
   * Data: Any kind of data you would like to associate with token
   """
-  @spec insert_token(name(), token(), map()) :: {atom(), any()}
-  def insert_token(name, token, data) when is_bitstring(token) and is_bitstring(name) do
+  @spec insert_token(name(), number(), token(), map(), map()) :: {atom(), any()}
+  def insert_token(name, expiration, token, data, metadata) when is_bitstring(token) and is_bitstring(name) do
     Logger.info("Inserted data into [#{name}] cache, token:#{token}}", [additional: data])
     Cachex.execute(cachex_name(name), fn cache ->
-      Cachex.put(cache, token, data)
-      Cachex.expire(cache, token, :timer.seconds(60))
+      Cachex.put(cache, token, Data.new(data, metadata))
+      Cachex.expire(cache, token, :timer.seconds(expiration))
     end)
   end
 
@@ -64,13 +98,28 @@ defmodule Auctoritas.AuthenticationManager.DataStorage do
   * Data: Data to update (Map.Merge)
   """
   @spec update_token(name(), token(), map()) :: {atom(), any()}
-  def update_token(name, token, data) when is_bitstring(name) and is_bitstring(token) do
-    Logger.info("Updated data in [#{name}] cache, token:#{token}}", [additional: data])
+  def update_token(name, token, new_data) when is_bitstring(name) and is_bitstring(token) do
+    Logger.info("Updated data in [#{name}] cache, token:#{token}}", [additional: new_data])
     Cachex.execute(cachex_name(name), fn(cache) ->
       case get_token_data(name, token) do
         {:ok, token_data} ->
-        data = Map.merge(token_data, data)
-        Cachex.put(cache, token, data)
+          token_data = Data.new(token_data)
+          data = Data.update_data(token_data, new_data)
+          Cachex.put(cache, token, data)
+        {:error, error} -> {:error, error}
+      end
+    end)
+  end
+
+  @spec update_metadata(name(), token(), map()) :: {atom(), any()}
+  def update_metadata(name, token, new_metadata) when is_bitstring(name) and is_bitstring(token) do
+    Logger.info("Updated metadata in [#{name}] cache, token:#{token}}", [additional: new_metadata])
+    Cachex.execute(cachex_name(name), fn(cache) ->
+      case get_token_data(name, token) do
+        {:ok, token_data} ->
+          token_data = Data.new(token_data)
+          data = Data.update_metadata(token_data, new_metadata)
+          Cachex.put(cache, token, data)
         {:error, error} -> {:error, error}
       end
     end)
@@ -115,8 +164,7 @@ defmodule Auctoritas.AuthenticationManager.DataStorage do
 
           %{
             token: elem(token, 0),
-            value: elem(token, 1),
-            expiration: expires
+            data: elem(token, 1) |> Data.new |> Data.add_expiration(expires),
           }
         end)
 
@@ -158,7 +206,14 @@ defmodule Auctoritas.AuthenticationManager.DataStorage do
   @spec get_token_data(name(), token()) :: {atom(), any()}
   def get_token_data(name, token) when is_bitstring(token) and is_bitstring(name) do
     Logger.info("Getting token data from [#{name}] cache, token:#{token}")
-    Cachex.get(cachex_name(name), token)
+    with {:ok, token_data} <- Cachex.get(cachex_name(name), token),
+         {:ok, expiration} when is_number(expiration) <- token_expires?(name, token)
+      do
+      {:ok, Data.new(token_data) |> Data.add_expiration(expiration)}
+    else
+      {:ok, nil} -> {:error, "Data not found"}
+      {:error, error} -> {:error, error}
+    end
   end
 
 
@@ -173,8 +228,8 @@ defmodule Auctoritas.AuthenticationManager.DataStorage do
   def token_exists?(name, token) when is_bitstring(token) and is_bitstring(name) do
     Logger.info("Checking if token exists from [#{name}] cache, token:#{token}")
     case get_token_data(name, token) do
-      {:ok, nil} -> false
-      {:ok, _token} -> true
+      {:ok, data} -> true
+      {:error, error} -> false
     end
   end
 
@@ -188,7 +243,10 @@ defmodule Auctoritas.AuthenticationManager.DataStorage do
   @spec token_expires?(name(), token()) :: {atom(), any()}
   def token_expires?(name, token) when is_bitstring(token) and is_bitstring(name) do
     Logger.info("Checking when token expires from [#{name}] cache, token:#{token}")
-    Cachex.ttl(cachex_name(name), token)
+    case Cachex.ttl(cachex_name(name), token) do
+      {:ok, expiration} -> {:ok, expiration}
+      {:error, error} -> {:error, error}
+    end
   end
 
   @doc """
@@ -202,9 +260,8 @@ defmodule Auctoritas.AuthenticationManager.DataStorage do
   def check_collision(name, token) when is_bitstring(name) and is_bitstring(token) do
     Logger.info("Checking if token collides with existing token from [#{name}] cache, token:#{token}")
     case get_token_data(name, token) do
-      {:ok, nil} -> false
       {:ok, data} -> true
-      {:error, error} -> false
+      {:error, error } -> false
     end
   end
 

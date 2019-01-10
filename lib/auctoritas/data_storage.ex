@@ -2,7 +2,8 @@ defmodule Auctoritas.DataStorage do
   @type token() :: String.t()
   @type name() :: String.t()
 
-  @callback insert_token(name(), token(), any()) :: {atom(), any()}
+  @callback insert_token(name(), number(), token(), any(), map()) :: {atom(), any()}
+  @callback update_metadata(name(), token(), map()) :: {atom(), any()}
   @callback update_token(name(), token(), any()) :: {atom(), any()}
   @callback delete_token(name(), token()) :: {atom(), any()}
 

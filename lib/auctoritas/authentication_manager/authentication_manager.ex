@@ -24,6 +24,13 @@ defmodule Auctoritas.AuthenticationManager do
     |> String.to_atom()
   end
 
+  defp default_metadata() do
+    %{
+      inserted_at: System.system_time(:second),
+      updated_at: System.system_time(:second)
+    }
+  end
+
   def init(%Config{} = config) do
     {:ok, config}
   end
@@ -47,7 +54,7 @@ defmodule Auctoritas.AuthenticationManager do
     with {:ok, authentification_data} <- config.token_manager.authentification_data_check(config.name, authentification_data),
          {:ok, data} <- config.token_manager.data_check(config.name, data),
          {:ok, token} <- config.token_manager.generate_token(config.name, data) do
-      case config.data_storage.insert_token(config.name, token, data) do
+      case config.data_storage.insert_token(config.name, config.expiration, token, data, default_metadata()) do
         {:ok, data} -> {:ok, token, data}
         {:error, error} -> {:error, error}
       end

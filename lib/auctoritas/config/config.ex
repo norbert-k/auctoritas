@@ -1,6 +1,6 @@
 defmodule Auctoritas.Config do
-  @enforce_keys [:name, :data_storage, :token_manager]
-  defstruct [:name, :data_storage, :token_manager]
+  @enforce_keys [:name, :data_storage, :token_manager, :expiration]
+  defstruct [:name, :data_storage, :token_manager, :expiration]
 
   alias Auctoritas.AuthenticationManager.DataStorage
   alias Auctoritas.AuthenticationManager.TokenManager
@@ -8,7 +8,8 @@ defmodule Auctoritas.Config do
   @config_defaults [
     name: "auctoritas_default",
     data_storage: DataStorage,
-    token_manager: TokenManager
+    token_manager: TokenManager,
+    expiration: 60 * 60 * 24
   ]
 
   @config_key :auctoritas
