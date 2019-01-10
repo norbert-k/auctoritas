@@ -3,12 +3,12 @@ defmodule Auctoritas.Config do
   defstruct [:name, :data_storage, :token_manager, :expiration]
 
   alias Auctoritas.AuthenticationManager.DataStorage
-  alias Auctoritas.AuthenticationManager.TokenManager
+  alias Auctoritas.AuthenticationManager.DefaultTokenManager
 
   @config_defaults [
     name: "auctoritas_default",
     data_storage: DataStorage,
-    token_manager: TokenManager,
+    token_manager: DefaultTokenManager,
     expiration: 60 * 60 * 24
   ]
 
@@ -27,7 +27,7 @@ defmodule Auctoritas.Config do
       %Auctoritas.Config{
         name: "auctoritas_default",
         data_storage: Auctoritas.AuthenticationManager.DataStorage,
-        token_manager: Auctoritas.AuthenticationManager.TokenManager,
+        token_manager: Auctoritas.AuthenticationManager.DefaultTokenManager,
         expiration: 86400
       }
 
@@ -35,7 +35,7 @@ defmodule Auctoritas.Config do
       %Auctoritas.Config{
         name: "custom_name",
         data_storage: Auctoritas.AuthenticationManager.DataStorage,
-        token_manager: Auctoritas.AuthenticationManager.TokenManager,
+        token_manager: Auctoritas.AuthenticationManager.DefaultTokenManager,
         expiration: 86400
       }
   """

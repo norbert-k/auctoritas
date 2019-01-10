@@ -4,7 +4,7 @@ defmodule AuctoritasTest.ConfigTest do
   alias Auctoritas.Config
 
   alias Auctoritas.AuthenticationManager.DataStorage
-  alias Auctoritas.AuthenticationManager.TokenManager
+  alias Auctoritas.AuthenticationManager.DefaultTokenManager
 
   defmodule DummyDataStorage do
   end
@@ -16,7 +16,7 @@ defmodule AuctoritasTest.ConfigTest do
     assert Config.new() == %Config{
              name: "auctoritas_default",
              data_storage: DataStorage,
-             token_manager: TokenManager,
+             token_manager: DefaultTokenManager,
              expiration: 60 * 60 * 24
            }
   end
@@ -29,14 +29,14 @@ defmodule AuctoritasTest.ConfigTest do
     assert config_with_custom_name == %Config{
              name: "custom_name",
              data_storage: DataStorage,
-             token_manager: TokenManager,
+             token_manager: DefaultTokenManager,
              expiration: 60 * 60 * 24
            }
 
     assert config_with_custom_data_storage == %Config{
              name: "auctoritas_default",
              data_storage: DummyDataStorage,
-             token_manager: TokenManager,
+             token_manager: DefaultTokenManager,
              expiration: 60 * 60 * 24
            }
 
@@ -52,7 +52,7 @@ defmodule AuctoritasTest.ConfigTest do
     assert Config.read() == %Config{
              name: "auctoritas_default",
              data_storage: DataStorage,
-             token_manager: TokenManager,
+             token_manager: DefaultTokenManager,
              expiration: 60 * 60 * 24
            }
   end

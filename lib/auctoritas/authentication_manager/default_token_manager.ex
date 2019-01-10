@@ -1,0 +1,3 @@
+defmodule Auctoritas.AuthenticationManager.DefaultTokenManager do
+  use Auctoritas.AuthenticationManager.TokenManager
+end
