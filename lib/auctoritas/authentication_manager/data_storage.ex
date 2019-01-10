@@ -161,10 +161,6 @@ defmodule Auctoritas.AuthenticationManager.DataStorage do
     Cachex.get(cachex_name(name), token)
   end
 
-  @spec token_exists?(token()) :: boolean()
-  def token_exists?(token) when is_bitstring(token) do
-    token_exists?(@default_name, token)
-  end
 
   @doc """
   Check if token exists

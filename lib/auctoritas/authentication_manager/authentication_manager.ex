@@ -46,7 +46,7 @@ defmodule Auctoritas.AuthenticationManager do
   defp authenticate_check(config, authentification_data, data) do
     with {:ok, authentification_data} <- config.token_manager.authentification_data_check(config.name, authentification_data),
          {:ok, data} <- config.token_manager.data_check(config.name, data),
-         {:ok, token} <- config.token_manager.generate_token(data) do
+         {:ok, token} <- config.token_manager.generate_token(config.name, data) do
       case config.data_storage.insert_token(config.name, token, data) do
         {:ok, data} -> {:ok, token, data}
         {:error, error} -> {:error, error}

@@ -7,8 +7,8 @@ defmodule Auctoritas.AuthenticationManager.TokenManager do
   @type token() :: String.t()
   @type name() :: String.t()
 
-  @spec generate_token(map()) :: {atom(), token()}
-  def generate_token(_data) do
+  @spec generate_token(name(), map()) :: {atom(), token()}
+  def generate_token(_name, _data) do
     {:ok, TokenGenerator.generate_token()}
   end
 
