@@ -7,18 +7,30 @@ defmodule Auctoritas.AuthenticationManager.DataStorage do
     @typedoc "Token expiration in seconds"
     @type expiration() :: non_neg_integer()
 
+    @typedoc "When was token inserted (in seconds)"
+    @type inserted_at() :: non_neg_integer()
+
+    @typedoc "When was token updated (in seconds)"
+    @type updated_at() :: non_neg_integer()
+
+    @type metadata() :: %{
+      inserted_at: inserted_at(),
+      updated_at: updated_at(),
+      expires_in: expiration()
+    }
+
     @enforce_keys [:data, :metadata]
     defstruct [:data, :metadata]
 
     @typedoc"""
     Data struct with data and metadata maps
     * data is data associated when inserting token into data_storage
-    * metadata contains inserted_at, updated_at and has expiration time
+    * metadata contains inserted_at, updated_at, expires_in time
     inserted when using `get_token_data` function from data_storage
     """
     @type data :: %__MODULE__{
       data: map(),
-      metadata: map(),
+      metadata: metadata(),
     }
 
     @spec new(data_map :: map()) :: %__MODULE__{}
@@ -74,6 +86,7 @@ defmodule Auctoritas.AuthenticationManager.DataStorage do
   @typedoc "Token expiration in seconds"
   @type expiration() :: non_neg_integer()
 
+  @spec start_link(data :: %Config{}) :: {:ok, map()}
   def start_link(%Config{} = config) do
     Logger.info("Created new DataStorage worker", additional: config)
     worker = %{
@@ -89,6 +102,7 @@ defmodule Auctoritas.AuthenticationManager.DataStorage do
     {:ok, worker}
   end
 
+  @spec cachex_name(name :: name()) :: atom()
   defp cachex_name(name) when is_bitstring(name) do
     (name <> "_cachex_storage")
     |> String.to_atom()
@@ -215,7 +229,7 @@ defmodule Auctoritas.AuthenticationManager.DataStorage do
   * Start: Starting point in the list
   * Amount: Amount of tokens to take from list
   """
-  @spec get_tokens(name(), start :: non_neg_integer(), amount :: non_neg_integer()) :: {:ok, list()} | {:error, error :: any()}
+  @spec get_tokens(name(), start :: non_neg_integer(), amount :: non_neg_integer()) :: {:ok, list(token())} | {:error, error :: any()}
   def get_tokens(name, start, amount) when is_bitstring(name) do
     Logger.info("Getting tokens from [#{name}] cache, start:#{start}, amount:#{amount}}")
     query = Cachex.Query.create(true, :key)
