@@ -10,6 +10,9 @@ defmodule Auctoritas.AuthenticationManager do
 
   @default_name "auctoritas_default"
 
+  @doc """
+  Start Auctoritas GenServer with specified config (from `Auctoritas.Config`)
+  """
   def start_link(%Config{} = config) do
     GenServer.start_link(__MODULE__, config, name: auctoritas_name(config))
   end
@@ -37,19 +40,37 @@ defmodule Auctoritas.AuthenticationManager do
 
   def login(authentication_data, data), do: authenticate(authentication_data, data)
 
+  @doc """
+  Authenticate with supplied arguments to default authentication_manager;
+  * authentication_data is checked and then used to generate token
+  * data is stored inside data_storage with token as the key
+
+  ## Examples
+      iex> Auctoritas.AuthenticationManager.authenticate(%{username: "username"}, %{user_id: 1})
+      {:ok, "ec4eecaff1cc7e9daa511620e47203424e70b9c9785d51d11f246f27fab33a0b"}
+  """
   def authenticate(authentication_data, data) do
     authenticate(auctoritas_name(@default_name), authentication_data, data)
   end
 
   def login(name, authentication_data, data), do: authenticate(name, authentication_data, data)
 
+  @doc """
+  Authenticate with supplied arguments to custom authentication_manager;
+  * authentication_data is checked and then used to generate token
+  * data is stored inside data_storage with token as the key
+
+  ## Examples
+      iex> Auctoritas.AuthenticationManager.authenticate("custom_name", %{username: "username"}, %{user_id: 1})
+      {:ok, "0a0c820b3640bca38ec482da31510803e369e7b90dfc01cb1e571b7970b02633"}
+  """
   def authenticate(name, authentication_data, data) when is_bitstring(name) do
     authenticate(auctoritas_name(name), authentication_data, data)
   end
 
   def authenticate(pid, authentication_data, data) do
     case GenServer.call(pid, {:authenticate, authentication_data, data}) do
-      {:ok, token, data} -> {:ok, token}
+      {:ok, token, _data} -> {:ok, token}
       {:error, error} -> {:error, error}
     end
   end
@@ -58,7 +79,7 @@ defmodule Auctoritas.AuthenticationManager do
     with {:ok, authentication_data} <-
            config.token_manager.authentication_data_check(config.name, authentication_data),
          {:ok, data} <- config.token_manager.data_check(config.name, data),
-         {:ok, token} <- config.token_manager.generate_token(config.name, data) do
+         {:ok, token} <- config.token_manager.generate_token(config.name, authentication_data) do
       case config.data_storage.insert_token(
              config.name,
              config.expiration,
@@ -74,10 +95,48 @@ defmodule Auctoritas.AuthenticationManager do
     end
   end
 
+  @doc """
+  Get associated token data;
+
+  ## Examples
+      iex> Auctoritas.AuthenticationManager.authenticate(%{username: "username"}, %{user_id: 1})
+      {:ok, "0a0c820b3640bca38ec482da31510803e369e7b90dfc01cb1e571b7970b02633"}
+
+      iex> Auctoritas.AuthenticationManager.get_token_data("0a0c820b3640bca38ec482da31510803e369e7b90dfc01cb1e571b7970b02633")
+      {:ok,
+      %Auctoritas.AuthenticationManager.DataStorage.Data{
+       data: %{user_id: 1},
+       metadata: %{
+         expires_in: 86310242,
+         inserted_at: 1547201115,
+         updated_at: 1547201115
+       }
+      }}
+
+  """
   def get_token_data(token) do
     get_token_data(@default_name, token)
   end
 
+  @doc """
+  Get associated token data;
+
+  ## Examples
+      iex> Auctoritas.AuthenticationManager.authenticate("custom_name", %{username: "username"}, %{user_id: 1})
+      {:ok, "0a0c820b3640bca38ec482da31510803e369e7b90dfc01cb1e571b7970b02633"}
+
+      iex> Auctoritas.AuthenticationManager.get_token_data("custom_name", "0a0c820b3640bca38ec482da31510803e369e7b90dfc01cb1e571b7970b02633")
+      {:ok,
+      %Auctoritas.AuthenticationManager.DataStorage.Data{
+       data: %{user_id: 1},
+       metadata: %{
+         expires_in: 86310242,
+         inserted_at: 1547201115,
+         updated_at: 1547201115
+       }
+      }}
+
+  """
   def get_token_data(name, token) when is_bitstring(name) do
     get_token_data(auctoritas_name(name), token)
   end
@@ -128,12 +187,32 @@ defmodule Auctoritas.AuthenticationManager do
 
   def logout(token), do: deauthenticate(token)
 
+  @doc """
+  Deauthenticate supplied token from default authentication_manager
+
+  ## Examples
+      iex> Auctoritas.AuthenticationManager.authenticate(%{username: "username"}, %{user_id: 1})
+      {:ok, "0a0c820b3640bca38ec482da31510803e369e7b90dfc01cb1e571b7970b02633"}
+
+      iex> Auctoritas.AuthenticationManager.deauthenticate("0a0c820b3640bca38ec482da31510803e369e7b90dfc01cb1e571b7970b02633")
+      {:ok, true}
+  """
   def deauthenticate(token) do
     deauthenticate(auctoritas_name(@default_name), token)
   end
 
   def logout(name, token), do: deauthenticate(name, token)
 
+  @doc """
+  Deauthenticate supplied token from custom authentication_manager
+
+  ## Examples
+      iex> Auctoritas.AuthenticationManager.authenticate("custom_name", %{username: "username"}, %{user_id: 1})
+      {:ok, "0a0c820b3640bca38ec482da31510803e369e7b90dfc01cb1e571b7970b02633"}
+
+      iex> Auctoritas.AuthenticationManager.deauthenticate("custom_name", "0a0c820b3640bca38ec482da31510803e369e7b90dfc01cb1e571b7970b02633")
+      {:ok, true}
+  """
   def deauthenticate(name, token) when is_bitstring(name) do
     deauthenticate(auctoritas_name(name), token)
   end

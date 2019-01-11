@@ -36,7 +36,7 @@ defmodule Auctoritas.TokenManager do
       @type name() :: String.t()
 
       @spec generate_token(name(), authentication_data :: map()) :: {:ok, token()} | {:error, error :: any()}
-      def generate_token(_name, _data) do
+      def generate_token(_name, _authentication_data) when is_bitstring(_name) when is_map(_authentication_data) do
         {:ok, TokenGenerator.generate_token()}
       end
 

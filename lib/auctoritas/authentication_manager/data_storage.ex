@@ -1,19 +1,40 @@
 defmodule Auctoritas.AuthenticationManager.DataStorage do
   defmodule Data do
+    @moduledoc """
+    Module to help when dealing with data creation and updates
+    """
+
+    @typedoc "Token expiration in seconds"
+    @type expiration() :: non_neg_integer()
+
     @enforce_keys [:data, :metadata]
     defstruct [:data, :metadata]
 
+    @typedoc"""
+    Data struct with data and metadata maps
+    * data is data associated when inserting token into data_storage
+    * metadata contains inserted_at, updated_at and has expiration time
+    inserted when using `get_token_data` function from data_storage
+    """
+    @type data :: %__MODULE__{
+      data: map(),
+      metadata: map(),
+    }
+
+    @spec new(data_map :: map()) :: %__MODULE__{}
     def new(data_map) when is_map(data_map) do
       struct(__MODULE__, data_map)
     end
 
+    @spec new(data :: map(), metadata:: map()) :: %__MODULE__{}
     def new(data, metadata) when is_map(data) and is_map(metadata) do
-      %{
+      %__MODULE__{
         data: data,
         metadata: metadata
       }
     end
 
+    @spec update_data(data :: %__MODULE__{}, data:: map()) :: %__MODULE__{}
     def update_data(%__MODULE__{} = data, new_data) when is_map(new_data) do
       data
       |> update_metadata(%{
@@ -22,10 +43,12 @@ defmodule Auctoritas.AuthenticationManager.DataStorage do
       |> Map.put(:data, Map.merge(data.data, new_data))
     end
 
+    @spec update_metadata(data :: %__MODULE__{}, new_metadata:: map()) :: %__MODULE__{}
     def update_metadata(%__MODULE__{} = data, new_metadata) when is_map(new_metadata) do
       Map.put(data, :metadata, Map.merge(data.metadata, new_metadata))
     end
 
+    @spec add_expiration(data :: %__MODULE__{}, expiration:: expiration()) :: %__MODULE__{}
     def add_expiration(%__MODULE__{} = data, expiration) when is_number(expiration) do
       data
       |> update_metadata(%{expires_in: expiration})
@@ -41,8 +64,6 @@ defmodule Auctoritas.AuthenticationManager.DataStorage do
   """
 
   alias Auctoritas.Config
-
-  @cachex_default_name :auctoritas_default_cachex_storage
 
   @typedoc "Authentication token"
   @type token() :: String.t()
@@ -68,10 +89,6 @@ defmodule Auctoritas.AuthenticationManager.DataStorage do
     {:ok, worker}
   end
 
-
-  @doc """
-  Generate Cachex atom
-  """
   defp cachex_name(name) when is_bitstring(name) do
     (name <> "_cachex_storage")
     |> String.to_atom()
@@ -227,7 +244,7 @@ defmodule Auctoritas.AuthenticationManager.DataStorage do
 
     with {:ok, token_data} <- Cachex.get(cachex_name(name), token),
          {:ok, expiration} when is_number(expiration) <- token_expires?(name, token) do
-      {:ok, Data.new(token_data) |> Data.add_expiration(expiration)}
+      {:ok, %Data{} = token_data |> Data.add_expiration(expiration)}
     else
       {:ok, nil} -> {:error, "Data not found"}
       {:error, error} -> {:error, error}
@@ -246,8 +263,8 @@ defmodule Auctoritas.AuthenticationManager.DataStorage do
     Logger.info("Checking if token exists from [#{name}] cache, token:#{token}")
 
     case get_token_data(name, token) do
-      {:ok, data} -> true
-      {:error, error} -> false
+      {:ok, _data} -> true
+      {:error, _error} -> false
     end
   end
 
@@ -282,8 +299,8 @@ defmodule Auctoritas.AuthenticationManager.DataStorage do
     )
 
     case get_token_data(name, token) do
-      {:ok, data} -> true
-      {:error, error} -> false
+      {:ok, _data} -> true
+      {:error, _error} -> false
     end
   end
 end
