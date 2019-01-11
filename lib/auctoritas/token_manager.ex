@@ -20,7 +20,8 @@ defmodule Auctoritas.TokenManager do
   @doc """
   Invoked when generating token with :refresh_token config option
   """
-  @callback generate_refresh_token(name(), authentication_data :: map()) :: {:ok, token()} | {:error, error :: any()}
+  @callback generate_refresh_token(name(), authentication_data :: map()) ::
+              {:ok, token()} | {:error, error :: any()}
 
   @doc """
   Invoked when authenticating; checks supplied `authentication_data`
@@ -51,12 +52,14 @@ defmodule Auctoritas.TokenManager do
         {:ok, TokenGenerator.generate_token()}
       end
 
-      @spec generate_refresh_token(name(), authentication_data :: map()) :: {:ok, token()} | {:error, error :: any()}
+      @spec generate_refresh_token(name(), authentication_data :: map()) ::
+              {:ok, token()} | {:error, error :: any()}
       def generate_refresh_token(_name, _authentication_data)
           when is_bitstring(_name)
-               when is_map(_authentication_data) do
+          when is_map(_authentication_data) do
         {:ok, TokenGenerator.generate_token()}
       end
+
       @spec authentication_data_check(name(), authentication_data :: map()) ::
               {:ok, authentication_data :: map()} | {:error, error :: any()}
       def authentication_data_check(name, data) when is_bitstring(name) and is_map(data) do
@@ -69,7 +72,10 @@ defmodule Auctoritas.TokenManager do
         {:ok, data}
       end
 
-      defoverridable generate_token: 2, generate_refresh_token: 2, authentication_data_check: 2, data_check: 2
+      defoverridable generate_token: 2,
+                     generate_refresh_token: 2,
+                     authentication_data_check: 2,
+                     data_check: 2
     end
   end
 end

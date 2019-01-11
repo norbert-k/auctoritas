@@ -5,12 +5,12 @@ defmodule Auctoritas.Config do
   @type expiration() :: non_neg_integer()
 
   @type t :: %__MODULE__{
-               name: String.t(),
-               data_storage: module(),
-               token_manager: module(),
-               session_type: :static | :sliding | :refresh_token,
-               expiration: expiration()
-             }
+          name: String.t(),
+          data_storage: module(),
+          token_manager: module(),
+          session_type: :static | :sliding | :refresh_token,
+          expiration: expiration()
+        }
 
   alias Auctoritas.AuthenticationManager.CachexDataStorage
   alias Auctoritas.AuthenticationManager.DefaultTokenManager

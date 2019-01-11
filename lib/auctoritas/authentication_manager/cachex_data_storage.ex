@@ -115,9 +115,10 @@ defmodule Auctoritas.AuthenticationManager.CachexDataStorage do
   def reset_expiration(name, token, expiration) when is_bitstring(name) and is_bitstring(token) do
     Logger.info("Reseted expiration in [#{name}] cache, token:#{token}}")
 
-    transaction = Cachex.transaction(cachex_name(name), [token], fn cache ->
-      Cachex.expire(cache, token, :timer.seconds(expiration))
-    end)
+    transaction =
+      Cachex.transaction(cachex_name(name), [token], fn cache ->
+        Cachex.expire(cache, token, :timer.seconds(expiration))
+      end)
 
     case transaction do
       {:ok, result} -> result

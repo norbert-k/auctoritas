@@ -38,7 +38,7 @@ defmodule Auctoritas.DataStorage.Data do
 
   @spec new(data :: map(), expiration :: expiration()) :: %__MODULE__{}
   def new(data, expiration) when is_map(data) and is_number(expiration) do
-    new(%{ data: data, metadata: initial_metadata(expiration) })
+    new(%{data: data, metadata: initial_metadata(expiration)})
   end
 
   @spec update_data(data :: %__MODULE__{}, data :: map()) :: %__MODULE__{}
@@ -78,7 +78,9 @@ defmodule Auctoritas.DataStorage.Data do
     case Jason.decode(data_json, keys: :atoms) do
       {:ok, data_map} ->
         {:ok, Data.new(data_map)}
-      {:error, error} -> {:error, error}
+
+      {:error, error} ->
+        {:error, error}
     end
   end
 end
