@@ -44,7 +44,7 @@ defmodule Auctoritas do
   }}
 
    iex> {:ok, data} = Auth.deauthenticate(token)
-  {:ok, true}
+   {:ok, true}
   ```
 
   ## Configuration

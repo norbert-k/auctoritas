@@ -35,24 +35,28 @@ defmodule Auctoritas.AuthenticationManager do
     {:ok, config}
   end
 
-  def authenticate(authentification_data, data) do
-    authenticate(auctoritas_name(@default_name), authentification_data, data)
+  def login(authentication_data, data), do: authenticate(authentication_data, data)
+
+  def authenticate(authentication_data, data) do
+    authenticate(auctoritas_name(@default_name), authentication_data, data)
   end
 
-  def authenticate(name, authentification_data, data) when is_bitstring(name) do
-    authenticate(auctoritas_name(name), authentification_data, data)
+  def login(name, authentication_data, data), do: authenticate(name, authentication_data, data)
+
+  def authenticate(name, authentication_data, data) when is_bitstring(name) do
+    authenticate(auctoritas_name(name), authentication_data, data)
   end
 
-  def authenticate(pid, authentification_data, data) do
-    case GenServer.call(pid, {:authenticate, authentification_data, data}) do
+  def authenticate(pid, authentication_data, data) do
+    case GenServer.call(pid, {:authenticate, authentication_data, data}) do
       {:ok, token, data} -> {:ok, token}
       {:error, error} -> {:error, error}
     end
   end
 
-  defp authenticate_check(config, authentification_data, data) do
-    with {:ok, authentification_data} <-
-           config.token_manager.authentification_data_check(config.name, authentification_data),
+  defp authenticate_check(config, authentication_data, data) do
+    with {:ok, authentication_data} <-
+           config.token_manager.authentication_data_check(config.name, authentication_data),
          {:ok, data} <- config.token_manager.data_check(config.name, data),
          {:ok, token} <- config.token_manager.generate_token(config.name, data) do
       case config.data_storage.insert_token(
@@ -71,7 +75,7 @@ defmodule Auctoritas.AuthenticationManager do
   end
 
   def get_token_data(token) do
-    get_token_data(auctoritas_name(@default_name), token)
+    get_token_data(@default_name, token)
   end
 
   def get_token_data(name, token) when is_bitstring(name) do
@@ -85,9 +89,50 @@ defmodule Auctoritas.AuthenticationManager do
     end
   end
 
+  def get_tokens(start, amount) do
+    get_tokens(@default_name, start, amount)
+  end
+
+  def get_tokens(name, start, amount) when is_bitstring(name) do
+    get_tokens(auctoritas_name(name), start, amount)
+  end
+
+  def get_tokens(pid, start, amount) do
+    case GenServer.call(pid, {:get_tokens, start, amount}) do
+      {:ok, tokens} -> {:ok, tokens}
+      {:error, error} -> {:error, error}
+    end
+  end
+
+  def get_tokens_with_data(start, amount) do
+    get_tokens_with_data(@default_name, start, amount)
+  end
+
+  def get_tokens_with_data(name, start, amount) when is_bitstring(name) do
+    get_tokens_with_data(auctoritas_name(name), start, amount)
+  end
+
+  def get_tokens_with_data(pid, start, amount) do
+    case get_tokens(pid, start, amount) do
+      {:ok, tokens} ->
+        tokens
+        |> Enum.map(fn(token) ->
+          case get_token_data(pid, token) do
+            {:ok, token_data} -> token_data
+            {:error, error} -> {:error, error}
+          end
+        end)
+      {:error, error} -> {:error, error}
+    end
+  end
+
+  def logout(token), do: deauthenticate(token)
+
   def deauthenticate(token) do
     deauthenticate(auctoritas_name(@default_name), token)
   end
+
+  def logout(name, token), do: deauthenticate(name, token)
 
   def deauthenticate(name, token) when is_bitstring(name) do
     deauthenticate(auctoritas_name(name), token)
@@ -114,8 +159,16 @@ defmodule Auctoritas.AuthenticationManager do
     end
   end
 
-  def handle_call({:authenticate, authentification_data, data}, _from, %Config{} = config) do
-    case authenticate_check(config, authentification_data, data) do
+  defp get_tokens_from_data_store(config, start, amount) do
+    case config.data_storage.get_tokens(config.name, start, amount) do
+      {:ok, tokens} -> {:ok, tokens}
+      {:error, error} -> {:error, error}
+    end
+  end
+
+
+  def handle_call({:authenticate, authentication_data, data}, _from, %Config{} = config) do
+    case authenticate_check(config, authentication_data, data) do
       {:ok, token, data} ->
         {:reply, {:ok, token, data}, config}
 
@@ -136,6 +189,17 @@ defmodule Auctoritas.AuthenticationManager do
 
   def handle_call({:deauthenticate, token}, _from, %Config{} = config) do
     case delete_token_from_data_store(config, token) do
+      {:ok, data} ->
+        {:reply, {:ok, data}, config}
+
+
+      {:error, error} ->
+        {:reply, {:error, error}, config}
+    end
+  end
+
+  def handle_call({:get_tokens, start, amount}, _from, %Config{} = config) do
+    case get_tokens_from_data_store(config, start, amount) do
       {:ok, data} ->
         {:reply, {:ok, data}, config}
 

@@ -1,5 +1,6 @@
 defmodule AuctoritasTest.ConfigTest do
   use ExUnit.Case, async: true
+  doctest Auctoritas.Config
 
   alias Auctoritas.Config
 
