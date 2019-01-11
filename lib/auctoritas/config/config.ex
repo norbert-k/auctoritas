@@ -2,12 +2,12 @@ defmodule Auctoritas.Config do
   @enforce_keys [:name, :data_storage, :token_manager, :expiration]
   defstruct [:name, :data_storage, :token_manager, :expiration]
 
-  alias Auctoritas.AuthenticationManager.DataStorage
+  alias Auctoritas.AuthenticationManager.CachexDataStorage
   alias Auctoritas.AuthenticationManager.DefaultTokenManager
 
   @config_defaults [
     name: "auctoritas_default",
-    data_storage: DataStorage,
+    data_storage: CachexDataStorage,
     token_manager: DefaultTokenManager,
     expiration: 60 * 60 * 24
   ]
@@ -26,7 +26,7 @@ defmodule Auctoritas.Config do
       iex> Auctoritas.Config.new()
       %Auctoritas.Config{
         name: "auctoritas_default",
-        data_storage: Auctoritas.AuthenticationManager.DataStorage,
+        data_storage: Auctoritas.AuthenticationManager.CachexDataStorage,
         token_manager: Auctoritas.AuthenticationManager.DefaultTokenManager,
         expiration: 86400
       }
@@ -34,7 +34,7 @@ defmodule Auctoritas.Config do
       iex> Auctoritas.Config.new(name: "custom_name")
       %Auctoritas.Config{
         name: "custom_name",
-        data_storage: Auctoritas.AuthenticationManager.DataStorage,
+        data_storage: Auctoritas.AuthenticationManager.CachexDataStorage,
         token_manager: Auctoritas.AuthenticationManager.DefaultTokenManager,
         expiration: 86400
       }

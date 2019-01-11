@@ -45,7 +45,8 @@ defmodule Auctoritas.MixProject do
       {:ex_doc, "~> 0.14", only: :dev},
       {:dialyxir, "~> 0.5", only: [:dev], runtime: false},
       {:secure_random, "~> 0.5"},
-      {:cachex, "~> 3.1"}
+      {:cachex, "~> 3.1"},
+      {:jason, "~> 1.1"}
       # {:dep_from_hexpm, "~> 0.3.0"},
       # {:dep_from_git, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"},
     ]

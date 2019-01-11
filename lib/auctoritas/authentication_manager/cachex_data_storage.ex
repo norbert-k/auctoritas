@@ -1,72 +1,4 @@
-defmodule Auctoritas.AuthenticationManager.DataStorage do
-  defmodule Data do
-    @moduledoc """
-    Module to help when dealing with data creation and updates
-    """
-
-    @typedoc "Token expiration in seconds"
-    @type expiration() :: non_neg_integer()
-
-    @typedoc "When was token inserted (in seconds)"
-    @type inserted_at() :: non_neg_integer()
-
-    @typedoc "When was token updated (in seconds)"
-    @type updated_at() :: non_neg_integer()
-
-    @type metadata() :: %{
-      inserted_at: inserted_at(),
-      updated_at: updated_at(),
-      expires_in: expiration()
-    }
-
-    @enforce_keys [:data, :metadata]
-    defstruct [:data, :metadata]
-
-    @typedoc"""
-    Data struct with data and metadata maps
-    * data is data associated when inserting token into data_storage
-    * metadata contains inserted_at, updated_at, expires_in time
-    inserted when using `get_token_data` function from data_storage
-    """
-    @type data :: %__MODULE__{
-      data: map(),
-      metadata: metadata(),
-    }
-
-    @spec new(data_map :: map()) :: %__MODULE__{}
-    def new(data_map) when is_map(data_map) do
-      struct(__MODULE__, data_map)
-    end
-
-    @spec new(data :: map(), metadata:: map()) :: %__MODULE__{}
-    def new(data, metadata) when is_map(data) and is_map(metadata) do
-      %__MODULE__{
-        data: data,
-        metadata: metadata
-      }
-    end
-
-    @spec update_data(data :: %__MODULE__{}, data:: map()) :: %__MODULE__{}
-    def update_data(%__MODULE__{} = data, new_data) when is_map(new_data) do
-      data
-      |> update_metadata(%{
-        updated_at: System.system_time(:second)
-      })
-      |> Map.put(:data, Map.merge(data.data, new_data))
-    end
-
-    @spec update_metadata(data :: %__MODULE__{}, new_metadata:: map()) :: %__MODULE__{}
-    def update_metadata(%__MODULE__{} = data, new_metadata) when is_map(new_metadata) do
-      Map.put(data, :metadata, Map.merge(data.metadata, new_metadata))
-    end
-
-    @spec add_expiration(data :: %__MODULE__{}, expiration:: expiration()) :: %__MODULE__{}
-    def add_expiration(%__MODULE__{} = data, expiration) when is_number(expiration) do
-      data
-      |> update_metadata(%{expires_in: expiration})
-    end
-  end
-
+defmodule Auctoritas.AuthenticationManager.CachexDataStorage do
   @behaviour Auctoritas.DataStorage
 
   require Logger
@@ -76,6 +8,7 @@ defmodule Auctoritas.AuthenticationManager.DataStorage do
   """
 
   alias Auctoritas.Config
+  alias Auctoritas.DataStorage.Data
 
   @typedoc "Authentication token"
   @type token() :: String.t()
@@ -89,14 +22,15 @@ defmodule Auctoritas.AuthenticationManager.DataStorage do
   @spec start_link(data :: %Config{}) :: {:ok, map()}
   def start_link(%Config{} = config) do
     Logger.info("Created new DataStorage worker", additional: config)
+
     worker = %{
       id: Cachex,
       start:
         {Cachex, :start_link,
-        [
-          cachex_name(config.name),
-          []
-        ]}
+         [
+           cachex_name(config.name),
+           []
+         ]}
     }
 
     {:ok, worker}
@@ -116,14 +50,21 @@ defmodule Auctoritas.AuthenticationManager.DataStorage do
   * Token: Generated token
   * Data: Any kind of data you would like to associate with token
   """
-  @spec insert_token(name(), expiration(), token(), map(), map()) :: {:ok, token()} | {:error, error :: any()}
-  def insert_token(name, expiration, token, data, metadata)
+  @spec insert_token(name(), expiration(), token(), map()) ::
+          {:ok, token(), %Data{}} | {:error, error :: any()}
+  def insert_token(name, expiration, token, data)
       when is_bitstring(token) and is_bitstring(name) do
     Logger.info("Inserted data into [#{name}] cache, token:#{token}}", additional: data)
 
     Cachex.execute(cachex_name(name), fn cache ->
-      Cachex.put(cache, token, Data.new(data, metadata))
-      Cachex.expire(cache, token, :timer.seconds(expiration))
+      data = Data.new(data, expiration)
+
+      with {:ok, true} <- Cachex.put(cache, token, data),
+           {:ok, true} <- Cachex.expire(cache, token, :timer.seconds(expiration)) do
+        {:ok, token, data}
+      else
+        {:error, error} -> {:error, error}
+      end
     end)
   end
 
@@ -177,7 +118,8 @@ defmodule Auctoritas.AuthenticationManager.DataStorage do
   * Name: Name from config
   * Token: Token to delete
   """
-  @spec delete_token(name(), token()) :: {atom(), any()} :: {:ok, boolean()} | {:error, error :: any()}
+  @spec delete_token(name(), token()) ::
+          {atom(), any()} :: {:ok, boolean()} | {:error, error :: any()}
   def delete_token(name, token) when is_bitstring(token) and is_bitstring(name) do
     Logger.info("Deleted token from [#{name}] cache, token:#{token}}")
 
@@ -209,11 +151,11 @@ defmodule Auctoritas.AuthenticationManager.DataStorage do
         |> Enum.to_list()
         |> Enum.slice(start, amount)
         |> Enum.map(fn token ->
-          {:ok, expires} = token_expires?(name, elem(token, 0))
+          {:ok, expiration} = token_expires?(name, elem(token, 0))
 
           %{
             token: elem(token, 0),
-            data: elem(token, 1) |> Data.new() |> Data.add_expiration(expires)
+            data: elem(token, 1) |> Data.add_expiration(div(expiration, 1000))
           }
         end)
 
@@ -229,7 +171,8 @@ defmodule Auctoritas.AuthenticationManager.DataStorage do
   * Start: Starting point in the list
   * Amount: Amount of tokens to take from list
   """
-  @spec get_tokens(name(), start :: non_neg_integer(), amount :: non_neg_integer()) :: {:ok, list(token())} | {:error, error :: any()}
+  @spec get_tokens(name(), start :: non_neg_integer(), amount :: non_neg_integer()) ::
+          {:ok, list(token())} | {:error, error :: any()}
   def get_tokens(name, start, amount) when is_bitstring(name) do
     Logger.info("Getting tokens from [#{name}] cache, start:#{start}, amount:#{amount}}")
     query = Cachex.Query.create(true, :key)
@@ -252,13 +195,13 @@ defmodule Auctoritas.AuthenticationManager.DataStorage do
   * Name: Name from config
   * Token: Generated token
   """
-  @spec get_token_data(name(), token()) :: {:ok, map()} | {:error, error :: any()}
+  @spec get_token_data(name(), token()) :: {:ok, %Data{}} | {:error, error :: any()}
   def get_token_data(name, token) when is_bitstring(token) and is_bitstring(name) do
     Logger.info("Getting token data from [#{name}] cache, token:#{token}")
 
     with {:ok, token_data} <- Cachex.get(cachex_name(name), token),
          {:ok, expiration} when is_number(expiration) <- token_expires?(name, token) do
-      {:ok, %Data{} = token_data |> Data.add_expiration(expiration)}
+      {:ok, %Data{} = token_data |> Data.add_expiration(div(expiration, 1000))}
     else
       {:ok, nil} -> {:error, "Data not found"}
       {:error, error} -> {:error, error}

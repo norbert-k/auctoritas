@@ -7,8 +7,18 @@ defmodule Auctoritas.AuthenticationManager do
   use GenServer
 
   alias Auctoritas.Config
+  alias Auctoritas.DataStorage.Data
 
   @default_name "auctoritas_default"
+
+  @typedoc "Authentication token"
+  @type token() :: String.t()
+
+  @typedoc "Name from config (Auctoritas supervisor name)"
+  @type name() :: String.t()
+
+  @typedoc "Token expiration in seconds"
+  @type expiration() :: non_neg_integer()
 
   @doc """
   Start Auctoritas GenServer with specified config (from `Auctoritas.Config`)
@@ -27,17 +37,11 @@ defmodule Auctoritas.AuthenticationManager do
     |> String.to_atom()
   end
 
-  defp default_metadata() do
-    %{
-      inserted_at: System.system_time(:second),
-      updated_at: System.system_time(:second)
-    }
-  end
-
   def init(%Config{} = config) do
     {:ok, config}
   end
 
+  @doc "Alternative to `authenticate(authentication_data, data)`"
   def login(authentication_data, data), do: authenticate(authentication_data, data)
 
   @doc """
@@ -53,6 +57,7 @@ defmodule Auctoritas.AuthenticationManager do
     authenticate(auctoritas_name(@default_name), authentication_data, data)
   end
 
+  @doc "Alternative to `authenticate(name, authentication_data, data)`"
   def login(name, authentication_data, data), do: authenticate(name, authentication_data, data)
 
   @doc """
@@ -70,26 +75,17 @@ defmodule Auctoritas.AuthenticationManager do
 
   def authenticate(pid, authentication_data, data) do
     case GenServer.call(pid, {:authenticate, authentication_data, data}) do
-      {:ok, token, _data} -> {:ok, token}
+      {:ok, token, data} -> {:ok, token, data}
       {:error, error} -> {:error, error}
     end
   end
 
+  @spec authenticate_check(%Config{}, map(), map()) :: {:ok, token(), %Data{}} | {:error, any()}
   defp authenticate_check(config, authentication_data, data) do
-    with {:ok, authentication_data} <-
-           config.token_manager.authentication_data_check(config.name, authentication_data),
+    with {:ok, authentication_data} <- config.token_manager.authentication_data_check(config.name, authentication_data),
          {:ok, data} <- config.token_manager.data_check(config.name, data),
          {:ok, token} <- config.token_manager.generate_token(config.name, authentication_data) do
-      case config.data_storage.insert_token(
-             config.name,
-             config.expiration,
-             token,
-             data,
-             default_metadata()
-           ) do
-        {:ok, data} -> {:ok, token, data}
-        {:error, error} -> {:error, error}
-      end
+      config.data_storage.insert_token(config.name, config.expiration, token, data)
     else
       {:error, error} -> {:error, error}
     end
@@ -175,16 +171,19 @@ defmodule Auctoritas.AuthenticationManager do
     case get_tokens(pid, start, amount) do
       {:ok, tokens} ->
         tokens
-        |> Enum.map(fn(token) ->
+        |> Enum.map(fn token ->
           case get_token_data(pid, token) do
             {:ok, token_data} -> token_data
             {:error, error} -> {:error, error}
           end
         end)
-      {:error, error} -> {:error, error}
+
+      {:error, error} ->
+        {:error, error}
     end
   end
 
+  @doc "Alternative to `logout(token)`"
   def logout(token), do: deauthenticate(token)
 
   @doc """
@@ -201,6 +200,7 @@ defmodule Auctoritas.AuthenticationManager do
     deauthenticate(auctoritas_name(@default_name), token)
   end
 
+  @doc "Alternative to `logout(name, token)`"
   def logout(name, token), do: deauthenticate(name, token)
 
   @doc """
@@ -245,7 +245,6 @@ defmodule Auctoritas.AuthenticationManager do
     end
   end
 
-
   def handle_call({:authenticate, authentication_data, data}, _from, %Config{} = config) do
     case authenticate_check(config, authentication_data, data) do
       {:ok, token, data} ->
@@ -270,7 +269,6 @@ defmodule Auctoritas.AuthenticationManager do
     case delete_token_from_data_store(config, token) do
       {:ok, data} ->
         {:reply, {:ok, data}, config}
-
 
       {:error, error} ->
         {:reply, {:error, error}, config}
