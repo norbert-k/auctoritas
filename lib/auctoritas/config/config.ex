@@ -1,6 +1,16 @@
 defmodule Auctoritas.Config do
-  @enforce_keys [:name, :data_storage, :token_manager, :expiration]
-  defstruct [:name, :data_storage, :token_manager, :expiration]
+  @enforce_keys [:name, :data_storage, :token_manager, :session_type, :expiration]
+  defstruct [:name, :data_storage, :token_manager, :session_type, :expiration]
+
+  @type expiration() :: non_neg_integer()
+
+  @type t :: %__MODULE__{
+               name: String.t(),
+               data_storage: module(),
+               token_manager: module(),
+               session_type: :static | :sliding | :refresh_token,
+               expiration: expiration()
+             }
 
   alias Auctoritas.AuthenticationManager.CachexDataStorage
   alias Auctoritas.AuthenticationManager.DefaultTokenManager
@@ -9,6 +19,7 @@ defmodule Auctoritas.Config do
     name: "auctoritas_default",
     data_storage: CachexDataStorage,
     token_manager: DefaultTokenManager,
+    session_type: :sliding,
     expiration: 60 * 60 * 24
   ]
 

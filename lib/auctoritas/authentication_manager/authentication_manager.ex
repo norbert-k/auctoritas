@@ -231,6 +231,13 @@ defmodule Auctoritas.AuthenticationManager do
     end
   end
 
+  defp reset_token_expiration(config, token) do
+    case config.data_storage.reset_expiration(config.name, token, config.expiration) do
+      {:ok, data} -> {:ok, data}
+      {:error, error} -> {:error, error}
+    end
+  end
+
   defp delete_token_from_data_store(config, token) do
     case config.data_storage.delete_token(config.name, token) do
       {:ok, data} -> {:ok, data}
@@ -252,6 +259,16 @@ defmodule Auctoritas.AuthenticationManager do
 
       {:error, error} ->
         {:reply, {:error, error}, config}
+    end
+  end
+
+  def handle_call({:get_token_data, token}, _from, %Config{session_type: :sliding} = config) do
+    with {:ok, true} <- reset_token_expiration(config, token),
+         {:ok, data} <- get_token_data_from_data_store(config, token) do
+      {:reply, {:ok, data}, config}
+    else
+      {:ok, false} -> {:reply, {:error, "Token expired or doesn't exist"}, config}
+      {:error, error} -> {:reply, {:error, error}, config}
     end
   end
 

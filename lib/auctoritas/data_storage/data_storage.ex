@@ -29,6 +29,7 @@ defmodule Auctoritas.DataStorage do
 
   @callback update_metadata(name(), token(), map()) :: {atom(), any()}
   @callback update_token(name(), token(), map()) :: {atom(), any()}
+  @callback reset_expiration(name(), token(), expiration()) :: {atom(), any()}
 
   @doc """
   Delete token from data_storage, used when deauthenticating (logging out)
