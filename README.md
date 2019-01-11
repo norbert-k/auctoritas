@@ -3,6 +3,14 @@
 Session like authentication library for Elixir applications
 * Documentation: [HexDocs](https://hexdocs.pm/auctoritas/api-reference.html)
 
+# WORK IN PROGRESS
+### Todo
+
+- [ ] Session types [:sliding, :refresh_token, :static]
+- [ ] Plug integration
+- [x] Default data_store (Cachex; Erlang ETS)
+- [ ] Redis data_store
+
 ## Installation
 
 If [available in Hex](https://hex.pm/docs/publish), the package can be installed
