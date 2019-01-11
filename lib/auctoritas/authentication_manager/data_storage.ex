@@ -44,8 +44,14 @@ defmodule Auctoritas.AuthenticationManager.DataStorage do
 
   @cachex_default_name :auctoritas_default_cachex_storage
 
+  @typedoc "Authentication token"
   @type token() :: String.t()
+
+  @typedoc "Name from config (Auctoritas supervisor name)"
   @type name() :: String.t()
+
+  @typedoc "Token expiration in seconds"
+  @type expiration() :: non_neg_integer()
 
   def start_link(%Config{} = config) do
     Logger.info("Created new DataStorage worker", additional: config)
@@ -79,7 +85,7 @@ defmodule Auctoritas.AuthenticationManager.DataStorage do
   * Token: Generated token
   * Data: Any kind of data you would like to associate with token
   """
-  @spec insert_token(name(), number(), token(), map(), map()) :: {atom(), any()}
+  @spec insert_token(name(), expiration(), token(), map(), map()) :: {:ok, token()} | {:error, error :: any()}
   def insert_token(name, expiration, token, data, metadata)
       when is_bitstring(token) and is_bitstring(name) do
     Logger.info("Inserted data into [#{name}] cache, token:#{token}}", additional: data)
@@ -140,7 +146,7 @@ defmodule Auctoritas.AuthenticationManager.DataStorage do
   * Name: Name from config
   * Token: Token to delete
   """
-  @spec delete_token(name(), token()) :: {atom(), any()}
+  @spec delete_token(name(), token()) :: {atom(), any()} :: {:ok, boolean()} | {:error, error :: any()}
   def delete_token(name, token) when is_bitstring(token) and is_bitstring(name) do
     Logger.info("Deleted token from [#{name}] cache, token:#{token}}")
 
@@ -192,7 +198,7 @@ defmodule Auctoritas.AuthenticationManager.DataStorage do
   * Start: Starting point in the list
   * Amount: Amount of tokens to take from list
   """
-  @spec get_tokens(name(), non_neg_integer(), non_neg_integer()) :: {atom(), any()}
+  @spec get_tokens(name(), start :: non_neg_integer(), amount :: non_neg_integer()) :: {:ok, list()} | {:error, error :: any()}
   def get_tokens(name, start, amount) when is_bitstring(name) do
     Logger.info("Getting tokens from [#{name}] cache, start:#{start}, amount:#{amount}}")
     query = Cachex.Query.create(true, :key)
@@ -215,7 +221,7 @@ defmodule Auctoritas.AuthenticationManager.DataStorage do
   * Name: Name from config
   * Token: Generated token
   """
-  @spec get_token_data(name(), token()) :: {atom(), any()}
+  @spec get_token_data(name(), token()) :: {:ok, map()} | {:error, error :: any()}
   def get_token_data(name, token) when is_bitstring(token) and is_bitstring(name) do
     Logger.info("Getting token data from [#{name}] cache, token:#{token}")
 
@@ -252,7 +258,7 @@ defmodule Auctoritas.AuthenticationManager.DataStorage do
   * Name: Name from config
   * Token: Generated token
   """
-  @spec token_expires?(name(), token()) :: {atom(), any()}
+  @spec token_expires?(name(), token()) :: {:ok, expiration()} | {:error, error :: any()}
   def token_expires?(name, token) when is_bitstring(token) and is_bitstring(name) do
     Logger.info("Checking when token expires from [#{name}] cache, token:#{token}")
 
