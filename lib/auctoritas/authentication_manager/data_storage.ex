@@ -47,22 +47,21 @@ defmodule Auctoritas.AuthenticationManager.DataStorage do
   @type token() :: String.t()
   @type name() :: String.t()
 
-  @doc """
-  Start cachex with custom name
-  """
-  def worker(%Config{} = config) do
+  def start_link(%Config{} = config) do
     Logger.info("Created new DataStorage worker", additional: config)
-
-    %{
+    worker = %{
       id: Cachex,
       start:
         {Cachex, :start_link,
-         [
-           cachex_name(config.name),
-           []
-         ]}
+        [
+          cachex_name(config.name),
+          []
+        ]}
     }
+
+    {:ok, worker}
   end
+
 
   @doc """
   Generate Cachex atom

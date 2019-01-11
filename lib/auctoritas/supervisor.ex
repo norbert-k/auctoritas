@@ -1,7 +1,6 @@
 defmodule Auctoritas.AuthenticationSupervisor do
   use Supervisor
 
-  alias Auctoritas.AuthenticationManager.DataStorage
   alias Auctoritas.Config
 
   def start_link(%Config{} = config) do
@@ -15,9 +14,15 @@ defmodule Auctoritas.AuthenticationSupervisor do
 
   def init(%Config{} = config) do
     children = [
-      DataStorage.worker(config),
       {Auctoritas.AuthenticationManager, config}
     ]
+
+    worker = case config.data_storage.start_link(config) do
+      {:ok, worker} -> [worker]
+      {:no_worker} -> []
+    end
+
+    children = children ++ worker
 
     Supervisor.init(children, strategy: :one_for_one)
   end
