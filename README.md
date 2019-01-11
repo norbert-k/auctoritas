@@ -6,7 +6,9 @@ Session like authentication library for Elixir applications
 # WORK IN PROGRESS
 ### Todo
 
-- [ ] Session types [:sliding, :refresh_token, :static]
+- [x] Sliding session type
+- [x] Static session type
+- [ ] Refresh token session type
 - [ ] Plug integration
 - [x] Default data_store (Cachex; Erlang ETS)
 - [ ] Redis data_store
