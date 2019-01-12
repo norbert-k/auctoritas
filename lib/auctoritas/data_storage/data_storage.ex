@@ -14,6 +14,7 @@ defmodule Auctoritas.DataStorage do
   @type expiration() :: non_neg_integer()
 
   alias Auctoritas.DataStorage.Data
+  alias Auctoritas.DataStorage.RefreshTokenData
 
   @doc """
   Starts data_storage when returned `{:ok, worker_map_or_equals}`
@@ -24,22 +25,26 @@ defmodule Auctoritas.DataStorage do
   @doc """
   Insert token with expiration and supplied data map.
   """
-  @callback insert_token(name(), expiration(), token(), map()) ::
+  @callback insert_token(name(), token_expiration :: expiration(), token :: token(), token_data :: map()) ::
               {:ok, token(), %Data{}} | {:error, error :: any()}
-  @callback insert_refresh_token(name(), expiration(), token(), token()) ::
-              {:ok, token()} | {:error, error :: any()}
+  @callback insert_refresh_token(name(), refresh_token_expiration :: expiration(), refresh_token :: token(), token :: token(), auth_data :: map()) ::
+              {:ok, token(), %RefreshTokenData{}} | {:error, error :: any()}
 
-  @callback update_metadata(name(), token(), map()) :: {atom(), any()}
-  @callback update_token(name(), token(), map()) :: {atom(), any()}
-  @callback reset_expiration(name(), token(), expiration()) :: {atom(), any()}
+  @callback update_metadata(name(), token :: token(), map()) :: {atom(), any()}
+  @callback update_token(name(), token :: token(), map()) :: {atom(), any()}
+  @callback reset_expiration(name(), token :: token(), expiration()) :: {atom(), any()}
 
   @doc """
   Delete token from data_storage, used when deauthenticating (logging out)
   """
-  @callback delete_token(name(), token()) ::
+  @callback delete_token(name(), token :: token()) ::
               {atom(), any()} :: {:ok, boolean()} | {:error, error :: any()}
 
-  @callback get_token_data(name(), token()) :: {:ok, %Data{}} | {:error, error :: any()}
+  @callback delete_refresh_token(name(), refresh_token :: token()) ::
+              {atom(), any()} :: {:ok, boolean()} | {:error, error :: any()}
+
+  @callback get_token_data(name(), token :: token()) :: {:ok, %Data{}} | {:error, error :: any()}
+  @callback get_refresh_token_data(name(), refresh_token :: token()) :: {:ok, %RefreshTokenData{}} | {:error, error :: any()}
 
   @doc """
   Return tokens with specified start and amount value

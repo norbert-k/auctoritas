@@ -8,6 +8,7 @@ defmodule Auctoritas.AuthenticationManager do
 
   alias Auctoritas.Config
   alias Auctoritas.DataStorage.Data
+  alias Auctoritas.DataStorage.RefreshTokenData
 
   @default_name "auctoritas_default"
 
@@ -42,7 +43,7 @@ defmodule Auctoritas.AuthenticationManager do
   end
 
   @doc "Alternative to `authenticate(authentication_data, data)`"
-  def login(authentication_data, data), do: authenticate(authentication_data, data)
+  def login(authentication_data), do: authenticate(authentication_data)
 
   @doc """
   Authenticate with supplied arguments to default authentication_manager;
@@ -53,12 +54,12 @@ defmodule Auctoritas.AuthenticationManager do
       iex> Auctoritas.AuthenticationManager.authenticate(%{username: "username"}, %{user_id: 1})
       {:ok, "ec4eecaff1cc7e9daa511620e47203424e70b9c9785d51d11f246f27fab33a0b"}
   """
-  def authenticate(authentication_data, data) do
-    authenticate(auctoritas_name(@default_name), authentication_data, data)
+  def authenticate(authentication_data) do
+    authenticate(auctoritas_name(@default_name), authentication_data)
   end
 
   @doc "Alternative to `authenticate(name, authentication_data, data)`"
-  def login(name, authentication_data, data), do: authenticate(name, authentication_data, data)
+  def login(name, authentication_data), do: authenticate(name, authentication_data)
 
   @doc """
   Authenticate with supplied arguments to custom authentication_manager;
@@ -69,32 +70,73 @@ defmodule Auctoritas.AuthenticationManager do
       iex> Auctoritas.AuthenticationManager.authenticate("custom_name", %{username: "username"}, %{user_id: 1})
       {:ok, "0a0c820b3640bca38ec482da31510803e369e7b90dfc01cb1e571b7970b02633"}
   """
-  def authenticate(name, authentication_data, data) when is_bitstring(name) do
-    authenticate(auctoritas_name(name), authentication_data, data)
+  def authenticate(name, authentication_data) when is_bitstring(name) do
+    authenticate(auctoritas_name(name), authentication_data)
   end
 
-  def authenticate(pid, authentication_data, data) do
-    case GenServer.call(pid, {:authenticate, authentication_data, data}) do
+  def authenticate(pid, authentication_data) do
+    case GenServer.call(pid, {:authenticate, authentication_data}) do
       {:ok, token, data} -> {:ok, token, data}
+      {:ok, token, refresh_token, data, refresh_token_data} -> {:ok, token, refresh_token, data, refresh_token_data}
       {:error, error} -> {:error, error}
     end
   end
 
-  @spec authenticate_check(%Config{}, map(), map()) :: {:ok, token(), %Data{}} | {:error, any()}
-  defp authenticate_check(config, authentication_data, data) do
-    with {:ok, authentication_data} <-
-           config.token_manager.authentication_data_check(config.name, authentication_data),
-         {:ok, data} <- config.token_manager.data_check(config.name, data),
-         {:ok, token} <- config.token_manager.generate_token(config.name, authentication_data) do
-      config.data_storage.insert_token(config.name, config.expiration, token, data)
+  def refresh_token(token) do
+    refresh_token(auctoritas_name(@default_name), token)
+  end
+
+  def refresh_token(name, token) when is_bitstring(name) do
+    refresh_token(auctoritas_name(name), token)
+  end
+
+  def refresh_token(pid, token) do
+    case GenServer.call(pid, {:refresh_token, token}) do
+      {:ok, token, refresh_token, data, refresh_token_data} -> {:ok, token, refresh_token, data, refresh_token_data}
+      {:error, error} -> {:error, error}
+    end
+  end
+
+  @spec authenticate_check(%Config{}, map()) :: {:ok, token :: token(), %Data{}} | {:ok, token :: token(), refresh_token :: token(), %Data{}, %RefreshTokenData{}} | {:error, any()}
+  defp authenticate_check(config, authentication_data) do
+    case config.token_manager.generate_token_and_data(config.name, authentication_data) do
+      {:ok, token, data_map} ->
+        case config.token_type do
+          :refresh_token ->
+
+            with {:ok, _token, %Data{} = data} <- config.data_storage.insert_token(config.name, config.expiration, token, data_map),
+                 {:ok, refresh_token} <- config.token_manager.generate_refresh_token(config.name, authentication_data),
+                 {:ok, _refresh_token, %RefreshTokenData{} = refresh_token_data} <- config.data_storage.insert_refresh_token(config.name, config.expiration, refresh_token, token, authentication_data) do
+              {:ok, token, refresh_token, data, refresh_token_data}
+            else
+              {:error, error} -> {:error, error}
+            end
+          _ ->
+            with {:ok, token, %Data{} = data} <- config.data_storage.insert_token(config.name, config.expiration, token, data_map) do
+              {:ok, token, data}
+            else
+              {:error, error} -> {:error, error}
+            end
+        end
+      {:error, error} -> {:error, error}
+    end
+  end
+
+  @spec refresh_token_check(%Config{token_type: :refresh_token}, refresh_token :: token()) :: {:ok, token :: token(), refresh_token :: token(), %Data{}} | {:error, any()}
+  defp refresh_token_check(%Config{token_type: :refresh_token} = config, refresh_token) do
+    with {:ok, %RefreshTokenData{:auth_data => auth_data, :token => token}} <- config.data_storage.get_refresh_token_data(config.name, refresh_token),
+         {:ok, new_token, new_refresh_token, data, refresh_token_data} <- authenticate_check(config, auth_data),
+         {:ok, true} <- config.data_storage.delete_token(config.name, token),
+         {:ok, true} <- config.data_storage.delete_refresh_token(config.name, refresh_token) do
+      {:ok, new_token, new_refresh_token, data, refresh_token_data}
     else
       {:error, error} -> {:error, error}
     end
   end
-
   @doc """
   Get associated token data;
-
+    Token : f3ae51e91f9a882422b52da3fc759a271ca61fde152f64caf9f6ce86161f5c20
+    refresh token: 48cc25bd6bb4f1f850df4191365227ba88aad241574f3ed448774a5658f5dac8
   ## Examples
       iex> Auctoritas.AuthenticationManager.authenticate(%{username: "username"}, %{user_id: 1})
       {:ok, "0a0c820b3640bca38ec482da31510803e369e7b90dfc01cb1e571b7970b02633"}
@@ -268,8 +310,28 @@ defmodule Auctoritas.AuthenticationManager do
     end
   end
 
-  def handle_call({:authenticate, authentication_data, data}, _from, %Config{} = config) do
-    case authenticate_check(config, authentication_data, data) do
+  def handle_call({:refresh_token, refresh_token}, _from, %Config{token_type: :refresh_token} = config) do
+    case refresh_token_check(config, refresh_token) do
+      {:ok, token, refresh_token, data, refresh_token_data} ->
+        {:reply, {:ok, token, refresh_token, data, refresh_token_data}, config}
+
+      {:error, error} ->
+        {:reply, {:error, error}, config}
+    end
+  end
+
+  def handle_call({:authenticate, authentication_data}, _from, %Config{token_type: :refresh_token} = config) do
+    case authenticate_check(config, authentication_data) do
+      {:ok, token, refresh_token, data, refresh_token_data} ->
+        {:reply, {:ok, token, refresh_token, data, refresh_token_data}, config}
+
+      {:error, error} ->
+        {:reply, {:error, error}, config}
+    end
+  end
+
+  def handle_call({:authenticate, authentication_data}, _from, %Config{} = config) do
+    case authenticate_check(config, authentication_data) do
       {:ok, token, data} ->
         {:reply, {:ok, token, data}, config}
 
@@ -278,7 +340,7 @@ defmodule Auctoritas.AuthenticationManager do
     end
   end
 
-  def handle_call({:get_token_data, :normal, token}, _from, %Config{session_type: :sliding} = config) do
+  def handle_call({:get_token_data, :normal, token}, _from, %Config{token_type: :sliding} = config) do
     with {:ok, true} <- reset_token_expiration(config, token),
          {:ok, data} <- get_token_data_from_data_store(config, token) do
       {:reply, {:ok, data}, config}

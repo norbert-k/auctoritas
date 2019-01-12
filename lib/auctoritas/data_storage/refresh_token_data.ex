@@ -1,5 +1,5 @@
-defmodule Auctoritas.DataStorage.Data do
-  alias Auctoritas.DataStorage.Data
+defmodule Auctoritas.DataStorage.RefreshTokenData do
+  alias Auctoritas.DataStorage.RefreshTokenData
 
   @typedoc "Token expiration in seconds"
   @type expiration() :: non_neg_integer()
@@ -10,15 +10,18 @@ defmodule Auctoritas.DataStorage.Data do
   @typedoc "When was token updated (UNIX Epoch time)"
   @type updated_at() :: non_neg_integer()
 
+  @typedoc "Authentication token"
+  @type token() :: String.t()
+
   @type metadata() :: %{
-          inserted_at: inserted_at(),
-          updated_at: updated_at(),
-          expires_in: expiration()
-        }
+                        inserted_at: inserted_at(),
+                        updated_at: updated_at(),
+                        expires_in: expiration(),
+                      }
 
   @derive Jason.Encoder
-  @enforce_keys [:data, :metadata]
-  defstruct [:data, :metadata]
+  @enforce_keys [:auth_data, :token, :metadata]
+  defstruct [:auth_data, :token, :metadata]
 
   @typedoc """
   Data struct with data and metadata maps
@@ -27,27 +30,28 @@ defmodule Auctoritas.DataStorage.Data do
   inserted when using `get_token_data` function from data_storage
   """
   @type t :: %__MODULE__{
-          data: map(),
-          metadata: metadata()
-        }
+               auth_data: map(),
+               token: token(),
+               metadata: metadata()
+             }
 
-  @spec new(data_map :: map()) :: %__MODULE__{}
-  def new(data_map) when is_map(data_map) do
-    struct(__MODULE__, data_map)
+  @spec new(refresh_token_data_map :: map()) :: %__MODULE__{}
+  def new(refresh_token_data_map) when is_map(refresh_token_data_map) do
+    struct(__MODULE__, refresh_token_data_map)
   end
 
-  @spec new(data :: map(), expiration :: expiration()) :: %__MODULE__{}
-  def new(data, expiration) when is_map(data) and is_number(expiration) do
-    new(%{data: data, metadata: initial_metadata(expiration)})
+  @spec new(auth_data :: map(), token :: token(), expiration :: expiration()) :: %__MODULE__{}
+  def new(auth_data, token, expiration) when is_map(auth_data) and is_number(expiration) and is_bitstring(token) do
+    new(%{auth_data: auth_data, token: token, metadata: initial_metadata(expiration)})
   end
 
-  @spec update_data(data :: %__MODULE__{}, data :: map()) :: %__MODULE__{}
-  def update_data(%__MODULE__{} = data, new_data) when is_map(new_data) do
+  @spec update_auth_data(data :: %__MODULE__{}, new_auth_data :: map()) :: %__MODULE__{}
+  def update_auth_data(%__MODULE__{} = data, new_auth_data) when is_map(new_auth_data) do
     data
     |> update_metadata(%{
       updated_at: System.system_time(:second)
     })
-    |> Map.put(:data, Map.merge(data.data, new_data))
+    |> Map.put(:auth_data, Map.merge(data.auth_data, new_auth_data))
   end
 
   @spec update_metadata(data :: %__MODULE__{}, new_metadata :: map()) :: %__MODULE__{}
@@ -66,7 +70,7 @@ defmodule Auctoritas.DataStorage.Data do
     %{
       inserted_at: System.system_time(:second),
       updated_at: System.system_time(:second),
-      expires_in: expiration
+      expires_in: expiration,
     }
   end
 
@@ -77,7 +81,7 @@ defmodule Auctoritas.DataStorage.Data do
   def decode(data_json) when is_bitstring(data_json) do
     case Jason.decode(data_json, keys: :atoms) do
       {:ok, data_map} ->
-        {:ok, Data.new(data_map)}
+        {:ok, RefreshTokenData.new(data_map)}
 
       {:error, error} ->
         {:error, error}
