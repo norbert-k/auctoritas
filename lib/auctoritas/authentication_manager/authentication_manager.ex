@@ -139,7 +139,22 @@ defmodule Auctoritas.AuthenticationManager do
   end
 
   def get_token_data(pid, token) do
-    case GenServer.call(pid, {:get_token_data, token}) do
+    case GenServer.call(pid, {:get_token_data, :normal, token}) do
+      {:ok, data} -> {:ok, data}
+      {:error, error} -> {:error, error}
+    end
+  end
+
+  def get_token_data_silent(token) do
+    get_token_data_silent(@default_name, token)
+  end
+
+  def get_token_data_silent(name, token) when is_bitstring(name) do
+    get_token_data_silent(auctoritas_name(name), token)
+  end
+
+  def get_token_data_silent(pid, token) do
+    case GenServer.call(pid, {:get_token_data, :silent, token}) do
       {:ok, data} -> {:ok, data}
       {:error, error} -> {:error, error}
     end
@@ -173,7 +188,7 @@ defmodule Auctoritas.AuthenticationManager do
       {:ok, tokens} ->
         tokens
         |> Enum.map(fn token ->
-          case get_token_data(pid, token) do
+          case get_token_data_silent(pid, token) do
             {:ok, token_data} -> token_data
             {:error, error} -> {:error, error}
           end
@@ -263,7 +278,7 @@ defmodule Auctoritas.AuthenticationManager do
     end
   end
 
-  def handle_call({:get_token_data, token}, _from, %Config{session_type: :sliding} = config) do
+  def handle_call({:get_token_data, :normal, token}, _from, %Config{session_type: :sliding} = config) do
     with {:ok, true} <- reset_token_expiration(config, token),
          {:ok, data} <- get_token_data_from_data_store(config, token) do
       {:reply, {:ok, data}, config}
@@ -273,7 +288,17 @@ defmodule Auctoritas.AuthenticationManager do
     end
   end
 
-  def handle_call({:get_token_data, token}, _from, %Config{} = config) do
+  def handle_call({:get_token_data, :normal, token}, _from, %Config{} = config) do
+    case get_token_data_from_data_store(config, token) do
+      {:ok, data} ->
+        {:reply, {:ok, data}, config}
+
+      {:error, error} ->
+        {:reply, {:error, error}, config}
+    end
+  end
+
+  def handle_call({:get_token_data, :silent, token}, _from, %Config{} = config) do
     case get_token_data_from_data_store(config, token) do
       {:ok, data} ->
         {:reply, {:ok, data}, config}

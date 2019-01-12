@@ -22,23 +22,57 @@ defmodule Auctoritas.AuthenticationManager.CachexDataStorage do
   @spec start_link(data :: %Config{}) :: {:ok, map()}
   def start_link(%Config{} = config) do
     Logger.info("Created new DataStorage worker", additional: config)
+    case config.session_type == :refresh_token do
+      true ->
+        workers = [
+          %{
+            id: TokenStore,
+            start:
+              {Cachex, :start_link,
+               [
+                 cachex_name(config.name),
+                 []
+               ]}
+          },
+          %{
+            id: RefreshTokenStore,
+            start:
+              {Cachex, :start_link,
+               [
+                 cachex_refresh_name(config.name),
+                 []
+               ]}
+          }
+        ]
 
-    worker = %{
-      id: Cachex,
-      start:
-        {Cachex, :start_link,
-         [
-           cachex_name(config.name),
-           []
-         ]}
-    }
+        {:ok, workers}
 
-    {:ok, worker}
+      false ->
+        workers = [
+          %{
+            id: TokenStore,
+            start:
+              {Cachex, :start_link,
+               [
+                 cachex_name(config.name),
+                 []
+               ]}
+          }
+        ]
+
+        {:ok, workers}
+    end
   end
 
   @spec cachex_name(name :: name()) :: atom()
   defp cachex_name(name) when is_bitstring(name) do
     (name <> "_cachex_storage")
+    |> String.to_atom()
+  end
+
+  @spec cachex_refresh_name(name :: name()) :: atom()
+  defp cachex_refresh_name(name) when is_bitstring(name) do
+    (name <> "_cachex__refresh_token_storage")
     |> String.to_atom()
   end
 
@@ -66,6 +100,13 @@ defmodule Auctoritas.AuthenticationManager.CachexDataStorage do
         {:error, error} -> {:error, error}
       end
     end)
+  end
+
+  @spec insert_refresh_token(name(), expiration(), token(), token()) ::
+          {:ok, token()} | {:error, error :: any()}
+  def insert_refresh_token(name, expiration, token, refresh_token)
+      when is_bitstring(token) and is_bitstring(name) do
+    Logger.info("Inserted refresh token into [#{name}] cache, refresh_token:#{refresh_token}}")
   end
 
   @doc """

@@ -19,13 +19,15 @@ defmodule Auctoritas.DataStorage do
   Starts data_storage when returned `{:ok, worker_map_or_equals}`
   Return `{:no_worker}` if data_storage startup isn't required
   """
-  @callback start_link(map()) :: {:ok, any()} | {:no_worker}
+  @callback start_link(map()) :: {:ok, list()} | {:no_worker}
 
   @doc """
   Insert token with expiration and supplied data map.
   """
   @callback insert_token(name(), expiration(), token(), map()) ::
               {:ok, token(), %Data{}} | {:error, error :: any()}
+  @callback insert_refresh_token(name(), expiration(), token(), token()) ::
+              {:ok, token()} | {:error, error :: any()}
 
   @callback update_metadata(name(), token(), map()) :: {atom(), any()}
   @callback update_token(name(), token(), map()) :: {atom(), any()}

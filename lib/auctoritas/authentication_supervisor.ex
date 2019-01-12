@@ -17,13 +17,13 @@ defmodule Auctoritas.AuthenticationSupervisor do
       {Auctoritas.AuthenticationManager, config}
     ]
 
-    worker =
+    workers =
       case config.data_storage.start_link(config) do
-        {:ok, worker} -> [worker]
+        {:ok, workers} -> workers
         {:no_worker} -> []
       end
 
-    children = children ++ worker
+    children = children ++ workers
 
     Supervisor.init(children, strategy: :one_for_one)
   end
