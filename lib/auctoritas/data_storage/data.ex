@@ -13,7 +13,8 @@ defmodule Auctoritas.DataStorage.Data do
   @type metadata() :: %{
           inserted_at: inserted_at(),
           updated_at: updated_at(),
-          expires_in: expiration()
+          expires_in: expiration(),
+          refresh_token: String.t() | nil,
         }
 
   @derive Jason.Encoder
@@ -61,12 +62,19 @@ defmodule Auctoritas.DataStorage.Data do
     |> update_metadata(%{expires_in: expiration})
   end
 
+  @spec add_refresh_token(data :: %__MODULE__{}, refresh_token :: String.t()) :: %__MODULE__{}
+  def add_refresh_token(%__MODULE__{} = data, refresh_token) when is_bitstring(refresh_token) do
+    data
+    |> update_metadata(%{refresh_token: refresh_token})
+  end
+
   @spec initial_metadata(expiration :: expiration()) :: metadata()
   def initial_metadata(expiration) do
     %{
       inserted_at: System.system_time(:second),
       updated_at: System.system_time(:second),
-      expires_in: expiration
+      expires_in: expiration,
+      refresh_token: nil
     }
   end
 

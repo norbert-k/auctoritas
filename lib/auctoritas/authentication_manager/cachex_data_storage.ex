@@ -19,7 +19,7 @@ defmodule Auctoritas.AuthenticationManager.CachexDataStorage do
   @typedoc "Token expiration in seconds"
   @type expiration() :: non_neg_integer()
 
-  @spec start_link(data :: %Config{}) :: {:ok, map()}
+  @spec start_link(data :: %Config{}) :: {:ok, list()}
   def start_link(%Config{} = config) do
     Logger.info("Created new DataStorage worker", additional: config)
     case config.session_type == :refresh_token do
