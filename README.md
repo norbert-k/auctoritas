@@ -1,5 +1,4 @@
 ![Alt text](./github/Auctoritas_logo.svg)
-<img src="./github/Auctoritas_logo.svg">
 
 Session like authentication library for Elixir applications
 * Documentation: [HexDocs](https://hexdocs.pm/auctoritas/api-reference.html)
