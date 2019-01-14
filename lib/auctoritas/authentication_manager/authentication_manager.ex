@@ -106,7 +106,7 @@ defmodule Auctoritas.AuthenticationManager do
 
             with {:ok, _token, %Data{} = data} <- config.data_storage.insert_token(config.name, config.expiration, token, data_map),
                  {:ok, refresh_token} <- config.token_manager.generate_refresh_token(config.name, authentication_data),
-                 {:ok, _refresh_token, %RefreshTokenData{} = refresh_token_data} <- config.data_storage.insert_refresh_token(config.name, config.expiration, refresh_token, token, authentication_data) do
+                 {:ok, _refresh_token, %RefreshTokenData{} = refresh_token_data} <- config.data_storage.insert_refresh_token(config.name, config.refresh_token_expiration, refresh_token, token, authentication_data) do
               {:ok, token, refresh_token, data, refresh_token_data}
             else
               {:error, error} -> {:error, error}

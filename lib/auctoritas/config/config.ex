@@ -1,6 +1,6 @@
 defmodule Auctoritas.Config do
-  @enforce_keys [:name, :data_storage, :token_manager, :token_type, :expiration]
-  defstruct [:name, :data_storage, :token_manager, :token_type, :expiration]
+  @enforce_keys [:name, :data_storage, :token_manager, :token_type, :expiration, :refresh_token_expiration]
+  defstruct [:name, :data_storage, :token_manager, :token_type, :expiration, :refresh_token_expiration]
 
   @type expiration() :: non_neg_integer()
 
@@ -9,7 +9,8 @@ defmodule Auctoritas.Config do
           data_storage: module(),
           token_manager: module(),
           token_type: :static | :sliding | :refresh_token,
-          expiration: expiration()
+          expiration: expiration(),
+          refresh_token_expiration: expiration(),
         }
 
   alias Auctoritas.AuthenticationManager.CachexDataStorage
@@ -20,7 +21,8 @@ defmodule Auctoritas.Config do
     data_storage: CachexDataStorage,
     token_manager: DefaultTokenManager,
     token_type: :sliding,
-    expiration: 60 * 60 * 24
+    expiration: 60 * 60 * 24, # 1 day
+    refresh_token_expiration: 60 * 60 * 24 * 3 # 3 days
   ]
 
   @config_key :auctoritas
