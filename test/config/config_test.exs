@@ -4,57 +4,27 @@ defmodule AuctoritasTest.ConfigTest do
 
   alias Auctoritas.Config
 
-  alias Auctoritas.AuthenticationManager.CachexDataStorage
-  alias Auctoritas.AuthenticationManager.DefaultTokenManager
-
-  defmodule DummyDataStorage do
-  end
-
-  defmodule DummyTokenManager do
-  end
-
   test "generate default config" do
     assert Config.new() == %Config{
              name: "auctoritas_default",
-             data_storage: CachexDataStorage,
-             token_manager: DefaultTokenManager,
-             expiration: 60 * 60 * 24
+             data_storage: Auctoritas.AuthenticationManager.CachexDataStorage,
+             token_manager: Auctoritas.AuthenticationManager.DefaultTokenManager,
+             token_type: :sliding,
+             expiration: 60 * 60 * 24, # 1 day
+             refresh_token_expiration: 60 * 60 * 24 * 3 # 3 days
            }
   end
 
-  test "generate config with custom parameters" do
+  test "generate config with custom parameter" do
     config_with_custom_name = Config.new(name: "custom_name")
-    config_with_custom_data_storage = Config.new(data_storage: DummyDataStorage)
-    config_with_custom_token_manager = Config.new(token_manager: DummyTokenManager)
 
     assert config_with_custom_name == %Config{
              name: "custom_name",
-             data_storage: CachexDataStorage,
-             token_manager: DefaultTokenManager,
-             expiration: 60 * 60 * 24
-           }
-
-    assert config_with_custom_data_storage == %Config{
-             name: "auctoritas_default",
-             data_storage: DummyDataStorage,
-             token_manager: DefaultTokenManager,
-             expiration: 60 * 60 * 24
-           }
-
-    assert config_with_custom_token_manager == %Config{
-             name: "auctoritas_default",
-             data_storage: CachexDataStorage,
-             token_manager: DummyTokenManager,
-             expiration: 60 * 60 * 24
-           }
-  end
-
-  test "read config from test.exs config file" do
-    assert Config.read() == %Config{
-             name: "auctoritas_default",
-             data_storage: CachexDataStorage,
-             token_manager: DefaultTokenManager,
-             expiration: 60 * 60 * 24
+             data_storage: Auctoritas.AuthenticationManager.CachexDataStorage,
+             token_manager: Auctoritas.AuthenticationManager.DefaultTokenManager,
+             token_type: :sliding,
+             expiration: 60 * 60 * 24, # 1 day
+             refresh_token_expiration: 60 * 60 * 24 * 3 # 3 days
            }
   end
 end

@@ -116,12 +116,6 @@ defmodule Auctoritas do
   end
 
   """
-
-  @moduledoc """
-  AuthenticationManager
-
-  Manages Auctoritas Authentication GenServer
-  """
   use GenServer
 
   alias Auctoritas.Config
@@ -160,9 +154,6 @@ defmodule Auctoritas do
     {:ok, config}
   end
 
-  @doc "Alternative to `authenticate(authentication_data, data)`"
-  def login(authentication_data), do: authenticate(authentication_data)
-
   @doc """
   Authenticate with supplied arguments to default authentication_manager;
   * authentication_data is checked and then used to generate token
@@ -175,9 +166,6 @@ defmodule Auctoritas do
   def authenticate(authentication_data) do
     authenticate(auctoritas_name(@default_name), authentication_data)
   end
-
-  @doc "Alternative to `authenticate(name, authentication_data, data)`"
-  def login(name, authentication_data), do: authenticate(name, authentication_data)
 
   @doc """
   Authenticate with supplied arguments to custom authentication_manager;
@@ -251,6 +239,22 @@ defmodule Auctoritas do
       {:error, error} -> {:error, error}
     end
   end
+
+  def get_token_data(token, :silent) do
+    get_token_data(@default_name, token, :silent)
+  end
+
+  def get_token_data(name, token, :silent) when is_bitstring(name) do
+    get_token_data(auctoritas_name(name), token, :silent)
+  end
+
+  def get_token_data(pid, token, :silent) do
+    case GenServer.call(pid, {:get_token_data, :silent, token}) do
+      {:ok, data} -> {:ok, data}
+      {:error, error} -> {:error, error}
+    end
+  end
+
   @doc """
   Get associated token data;
     Token : f3ae51e91f9a882422b52da3fc759a271ca61fde152f64caf9f6ce86161f5c20
@@ -305,21 +309,6 @@ defmodule Auctoritas do
     end
   end
 
-  def get_token_data_silent(token) do
-    get_token_data_silent(@default_name, token)
-  end
-
-  def get_token_data_silent(name, token) when is_bitstring(name) do
-    get_token_data_silent(auctoritas_name(name), token)
-  end
-
-  def get_token_data_silent(pid, token) do
-    case GenServer.call(pid, {:get_token_data, :silent, token}) do
-      {:ok, data} -> {:ok, data}
-      {:error, error} -> {:error, error}
-    end
-  end
-
   def get_tokens(start, amount) do
     get_tokens(@default_name, start, amount)
   end
@@ -330,6 +319,21 @@ defmodule Auctoritas do
 
   def get_tokens(pid, start, amount) do
     case GenServer.call(pid, {:get_tokens, start, amount}) do
+      {:ok, tokens} -> {:ok, tokens}
+      {:error, error} -> {:error, error}
+    end
+  end
+
+  def get_refresh_tokens(start, amount) do
+    get_refresh_tokens(@default_name, start, amount)
+  end
+
+  def get_refresh_tokens(name, start, amount) when is_bitstring(name) do
+    get_refresh_tokens(auctoritas_name(name), start, amount)
+  end
+
+  def get_refresh_tokens(pid, start, amount) do
+    case GenServer.call(pid, {:get_refresh_tokens, start, amount}) do
       {:ok, tokens} -> {:ok, tokens}
       {:error, error} -> {:error, error}
     end
@@ -346,21 +350,18 @@ defmodule Auctoritas do
   def get_tokens_with_data(pid, start, amount) do
     case get_tokens(pid, start, amount) do
       {:ok, tokens} ->
-        tokens
+        tokens = tokens
         |> Enum.map(fn token ->
-          case get_token_data_silent(pid, token) do
+          case get_token_data(pid, token, :silent) do
             {:ok, token_data} -> token_data
             {:error, error} -> {:error, error}
           end
         end)
-
+        {:ok, tokens}
       {:error, error} ->
         {:error, error}
     end
   end
-
-  @doc "Alternative to `logout(token)`"
-  def logout(token), do: deauthenticate(token)
 
   @doc """
   Deauthenticate supplied token from default authentication_manager
@@ -372,12 +373,9 @@ defmodule Auctoritas do
       iex> Auctoritas.AuthenticationManager.deauthenticate("0a0c820b3640bca38ec482da31510803e369e7b90dfc01cb1e571b7970b02633")
       {:ok, true}
   """
-  def deauthenticate(token) do
-    deauthenticate(auctoritas_name(@default_name), token)
+  def deauthenticate(token, :token) when is_bitstring(token) do
+    deauthenticate(auctoritas_name(@default_name), token, :token)
   end
-
-  @doc "Alternative to `logout(name, token)`"
-  def logout(name, token), do: deauthenticate(name, token)
 
   @doc """
   Deauthenticate supplied token from custom authentication_manager
@@ -389,12 +387,27 @@ defmodule Auctoritas do
       iex> Auctoritas.AuthenticationManager.deauthenticate("custom_name", "0a0c820b3640bca38ec482da31510803e369e7b90dfc01cb1e571b7970b02633")
       {:ok, true}
   """
-  def deauthenticate(name, token) when is_bitstring(name) do
-    deauthenticate(auctoritas_name(name), token)
+  def deauthenticate(name, token, :token) when is_bitstring(name) and is_bitstring(token) do
+    deauthenticate(auctoritas_name(name), token, :token)
   end
 
-  def deauthenticate(pid, token) do
-    case GenServer.call(pid, {:deauthenticate, token}) do
+  def deauthenticate(pid, token, :token) do
+    case GenServer.call(pid, {:deauthenticate, token, :token}) do
+      {:ok, data} -> {:ok, data}
+      {:error, error} -> {:error, error}
+    end
+  end
+
+  def deauthenticate(token, :refresh_token) when is_bitstring(token) do
+    deauthenticate(auctoritas_name(@default_name), token, :refresh_token)
+  end
+
+  def deauthenticate(name, token, :refresh_token) when is_bitstring(name) and is_bitstring(token) do
+    deauthenticate(auctoritas_name(name), token, :refresh_token)
+  end
+
+  def deauthenticate(pid, token, :refresh_token) do
+    case GenServer.call(pid, {:deauthenticate, token, :refresh_token}) do
       {:ok, data} -> {:ok, data}
       {:error, error} -> {:error, error}
     end
@@ -421,8 +434,22 @@ defmodule Auctoritas do
     end
   end
 
+  defp delete_refresh_token_from_data_store(config, token) do
+    case config.data_storage.delete_refresh_token(config.name, token) do
+      {:ok, data} -> {:ok, data}
+      {:error, error} -> {:error, error}
+    end
+  end
+
   defp get_tokens_from_data_store(config, start, amount) do
     case config.data_storage.get_tokens(config.name, start, amount) do
+      {:ok, tokens} -> {:ok, tokens}
+      {:error, error} -> {:error, error}
+    end
+  end
+
+  defp get_refresh_tokens_from_data_store(config, start, amount) do
+    case config.data_storage.get_refresh_tokens(config.name, start, amount) do
       {:ok, tokens} -> {:ok, tokens}
       {:error, error} -> {:error, error}
     end
@@ -488,7 +515,17 @@ defmodule Auctoritas do
     end
   end
 
-  def handle_call({:deauthenticate, token}, _from, %Config{} = config) do
+  def handle_call({:deauthenticate, token, :refresh_token}, _from, %Config{} = config) do
+    case delete_refresh_token_from_data_store(config, token) do
+      {:ok, data} ->
+        {:reply, {:ok, data}, config}
+
+      {:error, error} ->
+        {:reply, {:error, error}, config}
+    end
+  end
+
+  def handle_call({:deauthenticate, token, :token}, _from, %Config{} = config) do
     case delete_token_from_data_store(config, token) do
       {:ok, data} ->
         {:reply, {:ok, data}, config}
@@ -500,6 +537,16 @@ defmodule Auctoritas do
 
   def handle_call({:get_tokens, start, amount}, _from, %Config{} = config) do
     case get_tokens_from_data_store(config, start, amount) do
+      {:ok, data} ->
+        {:reply, {:ok, data}, config}
+
+      {:error, error} ->
+        {:reply, {:error, error}, config}
+    end
+  end
+
+  def handle_call({:get_refresh_tokens, start, amount}, _from, %Config{} = config) do
+    case get_refresh_tokens_from_data_store(config, start, amount) do
       {:ok, data} ->
         {:reply, {:ok, data}, config}
 

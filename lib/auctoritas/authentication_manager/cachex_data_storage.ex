@@ -238,6 +238,31 @@ defmodule Auctoritas.AuthenticationManager.CachexDataStorage do
   end
 
   @doc """
+  Get a list of refresh tokens
+
+  Arguments:
+  * Name: Name from config
+  * Start: Starting point in the list
+  * Amount: Amount of tokens to take from list
+  """
+  @spec get_refresh_tokens(name(), start :: non_neg_integer(), amount :: non_neg_integer()) ::
+          {:ok, list(token())} | {:error, error :: any()}
+  def get_refresh_tokens(name, start, amount) when is_bitstring(name) do
+    Logger.info("Getting tokens from [#{name}] cache, start:#{start}, amount:#{amount}}")
+    query = Cachex.Query.create(true, :key)
+
+    case Cachex.stream(cachex_refresh_name(name), query) do
+      {:ok, data} ->
+        data =
+          data
+          |> Enum.to_list()
+          |> Enum.slice(start, amount)
+
+        {:ok, data}
+    end
+  end
+
+  @doc """
   Get token data
 
   Arguments:

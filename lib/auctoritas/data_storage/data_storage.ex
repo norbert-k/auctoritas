@@ -30,8 +30,6 @@ defmodule Auctoritas.DataStorage do
   @callback insert_refresh_token(name(), refresh_token_expiration :: expiration(), refresh_token :: token(), token :: token(), auth_data :: map()) ::
               {:ok, token(), %RefreshTokenData{}} | {:error, error :: any()}
 
-  @callback update_metadata(name(), token :: token(), map()) :: {atom(), any()}
-  @callback update_token(name(), token :: token(), map()) :: {atom(), any()}
   @callback reset_expiration(name(), token :: token(), expiration()) :: {atom(), any()}
 
   @doc """
@@ -50,6 +48,12 @@ defmodule Auctoritas.DataStorage do
   Return tokens with specified start and amount value
   """
   @callback get_tokens(name(), start :: non_neg_integer(), amount :: non_neg_integer()) ::
+              {:ok, list(token())} | {:error, error :: any()}
+
+  @doc """
+  Return refresh tokens with specified start and amount value
+  """
+  @callback get_refresh_tokens(name(), start :: non_neg_integer(), amount :: non_neg_integer()) ::
               {:ok, list(token())} | {:error, error :: any()}
 
   @doc """

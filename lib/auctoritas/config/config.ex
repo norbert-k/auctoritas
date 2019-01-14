@@ -41,7 +41,9 @@ defmodule Auctoritas.Config do
         name: "auctoritas_default",
         data_storage: Auctoritas.AuthenticationManager.CachexDataStorage,
         token_manager: Auctoritas.AuthenticationManager.DefaultTokenManager,
-        expiration: 86400
+        token_type: :sliding,
+        expiration: 60 * 60 * 24, # 1 day
+        refresh_token_expiration: 60 * 60 * 24 * 3 # 3 days
       }
 
       iex> Auctoritas.Config.new(name: "custom_name")
@@ -49,7 +51,9 @@ defmodule Auctoritas.Config do
         name: "custom_name",
         data_storage: Auctoritas.AuthenticationManager.CachexDataStorage,
         token_manager: Auctoritas.AuthenticationManager.DefaultTokenManager,
-        expiration: 86400
+        token_type: :sliding,
+        expiration: 60 * 60 * 24, # 1 day
+        refresh_token_expiration: 60 * 60 * 24 * 3 # 3 days
       }
   """
   @spec new([]) :: %Auctoritas.Config{}
@@ -61,9 +65,7 @@ defmodule Auctoritas.Config do
     struct(__MODULE__, options)
   end
 
-  @doc """
-  Read Auctoritas config from config files
-  """
+
   @spec read() :: %Auctoritas.Config{}
   def read() do
     config_settings = Application.get_env(@config_key, :config)

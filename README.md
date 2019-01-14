@@ -10,6 +10,7 @@ Session like authentication library for Elixir applications
 - [x] Static session type
 - [x] Refresh token session type
 - [ ] Full unit testing
+- [ ] Refresh token <-> Token link
 - [ ] Plug integration
 - [ ] Improve documentation
 - [x] Default data_store (Cachex; Erlang ETS)

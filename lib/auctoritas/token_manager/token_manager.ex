@@ -27,8 +27,6 @@ defmodule Auctoritas.TokenManager do
     quote do
       @behaviour Auctoritas.TokenManager
 
-      alias Auctoritas.TokenGenerator
-
       @type token() :: String.t()
       @type name() :: String.t()
 
@@ -37,7 +35,7 @@ defmodule Auctoritas.TokenManager do
       def generate_token_and_data(_name, authentication_data)
           when is_bitstring(_name)
           when is_map(authentication_data) do
-          {:ok, TokenGenerator.generate_token(), authentication_data}
+          {:ok, SecureRandom.base64(64), authentication_data}
       end
 
       @spec generate_refresh_token(name(), authentication_data :: map()) ::
@@ -45,7 +43,7 @@ defmodule Auctoritas.TokenManager do
       def generate_refresh_token(_name, _authentication_data)
           when is_bitstring(_name)
           when is_map(_authentication_data) do
-        {:ok, TokenGenerator.generate_token()}
+        {:ok, SecureRandom.base64(64)}
       end
 
 
