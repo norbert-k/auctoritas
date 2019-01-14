@@ -14,7 +14,7 @@ defmodule Auctoritas.AuthenticationSupervisor do
 
   def init(%Config{} = config) do
     children = [
-      {Auctoritas.AuthenticationManager, config}
+      {Auctoritas, config}
     ]
 
     workers =
