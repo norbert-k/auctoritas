@@ -8,8 +8,10 @@ Session like authentication library for Elixir applications
 
 - [x] Sliding session type
 - [x] Static session type
-- [ ] Refresh token session type
+- [x] Refresh token session type
+- [ ] Full unit testing
 - [ ] Plug integration
+- [ ] Improve documentation
 - [x] Default data_store (Cachex; Erlang ETS)
 - [ ] Redis data_store
 
@@ -21,7 +23,7 @@ by adding `auctoritas` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:auctoritas, "~> 0.2.0"}
+    {:auctoritas, "~> 0.3.0"}
   ]
 end
 ```
