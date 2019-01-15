@@ -23,6 +23,7 @@ defmodule Auctoritas.AuthenticationManager.CachexDataStorage do
   @spec start_link(data :: %Config{}) :: {:ok, list()}
   def start_link(%Config{} = config) do
     Logger.info("Created new DataStorage worker", additional: config)
+
     case config.token_type == :refresh_token do
       true ->
         workers = [
@@ -85,7 +86,7 @@ defmodule Auctoritas.AuthenticationManager.CachexDataStorage do
   * Token: Generated token
   * Data: Any kind of data you would like to associate with token
   """
-  @spec insert_token(name(), expiration(), token(), map()) ::
+  @spec insert_token(name(), expiration(), token(), map(), :regular) ::
           {:ok, token :: token(), data :: %Data{}} | {:error, error :: any()}
   def insert_token(name, expiration, token, data)
       when is_bitstring(token) and is_bitstring(name) do
@@ -103,8 +104,34 @@ defmodule Auctoritas.AuthenticationManager.CachexDataStorage do
     end)
   end
 
-  @spec insert_refresh_token(name(), expiration(), refresh_token :: token(), token :: token(), auth_data :: map()) ::
-          {:ok, refresh_token :: token(), auth_data :: %RefreshTokenData{}} | {:error, error :: any()}
+  @spec insert_token(name(), expiration(), token(), token(), map()) ::
+          {:ok, token :: token(), data :: %Data{}} | {:error, error :: any()}
+  def insert_token(name, expiration, token, refresh_token, data)
+      when is_bitstring(token) and is_bitstring(name) do
+    Logger.info("Inserted data with refresh token into [#{name}] cache, token:#{token}}", additional: data)
+
+    Cachex.execute(cachex_name(name), fn cache ->
+      data = Data.new(data, refresh_token, expiration)
+
+      with {:ok, true} <- Cachex.put(cache, token, data),
+           {:ok, true} <- Cachex.expire(cache, token, :timer.seconds(expiration)) do
+        {:ok, token, data}
+      else
+        {:error, error} -> {:error, error}
+      end
+    end)
+  end
+
+
+  @spec insert_refresh_token(
+          name(),
+          expiration(),
+          refresh_token :: token(),
+          token :: token(),
+          auth_data :: map()
+        ) ::
+          {:ok, refresh_token :: token(), auth_data :: %RefreshTokenData{}}
+          | {:error, error :: any()}
   def insert_refresh_token(name, expiration, refresh_token, token, auth_data)
       when is_bitstring(refresh_token) and is_bitstring(name) and is_bitstring(token) do
     Logger.info("Inserted refresh token into [#{name}] cache, refresh_token:#{refresh_token}}")
@@ -289,13 +316,16 @@ defmodule Auctoritas.AuthenticationManager.CachexDataStorage do
   * Name: Name from config
   * Token: Generated refresh token
   """
-  @spec get_refresh_token_data(name(), refresh_token :: token()) :: {:ok, %RefreshTokenData{}} | {:error, error :: any()}
+  @spec get_refresh_token_data(name(), refresh_token :: token()) ::
+          {:ok, %RefreshTokenData{}} | {:error, error :: any()}
   def get_refresh_token_data(name, token) when is_bitstring(token) and is_bitstring(name) do
     Logger.info("Getting refresh token data from [#{name}] cache, token:#{token}")
 
     with {:ok, refresh_token_data} <- Cachex.get(cachex_refresh_name(name), token),
          {:ok, expiration} when is_number(expiration) <- refresh_token_expires?(name, token) do
-      {:ok, %RefreshTokenData{} = refresh_token_data |> RefreshTokenData.add_expiration(div(expiration, 1000))}
+      {:ok,
+       %RefreshTokenData{} =
+         refresh_token_data |> RefreshTokenData.add_expiration(div(expiration, 1000))}
     else
       {:ok, nil} -> {:error, "Data not found"}
       {:error, error} -> {:error, error}

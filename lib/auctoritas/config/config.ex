@@ -1,6 +1,20 @@
 defmodule Auctoritas.Config do
-  @enforce_keys [:name, :data_storage, :token_manager, :token_type, :expiration, :refresh_token_expiration]
-  defstruct [:name, :data_storage, :token_manager, :token_type, :expiration, :refresh_token_expiration]
+  @enforce_keys [
+    :name,
+    :data_storage,
+    :token_manager,
+    :token_type,
+    :expiration,
+    :refresh_token_expiration
+  ]
+  defstruct [
+    :name,
+    :data_storage,
+    :token_manager,
+    :token_type,
+    :expiration,
+    :refresh_token_expiration
+  ]
 
   @type expiration() :: non_neg_integer()
 
@@ -10,7 +24,7 @@ defmodule Auctoritas.Config do
           token_manager: module(),
           token_type: :static | :sliding | :refresh_token,
           expiration: expiration(),
-          refresh_token_expiration: expiration(),
+          refresh_token_expiration: expiration()
         }
 
   alias Auctoritas.AuthenticationManager.CachexDataStorage
@@ -21,8 +35,10 @@ defmodule Auctoritas.Config do
     data_storage: CachexDataStorage,
     token_manager: DefaultTokenManager,
     token_type: :sliding,
-    expiration: 60 * 60 * 24, # 1 day
-    refresh_token_expiration: 60 * 60 * 24 * 3 # 3 days
+    # 1 day
+    expiration: 60 * 60 * 24,
+    # 3 days
+    refresh_token_expiration: 60 * 60 * 24 * 3
   ]
 
   @config_key :auctoritas
@@ -64,7 +80,6 @@ defmodule Auctoritas.Config do
 
     struct(__MODULE__, options)
   end
-
 
   @spec read() :: %Auctoritas.Config{}
   def read() do

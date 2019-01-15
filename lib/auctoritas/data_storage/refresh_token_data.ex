@@ -14,10 +14,10 @@ defmodule Auctoritas.DataStorage.RefreshTokenData do
   @type token() :: String.t()
 
   @type metadata() :: %{
-                        inserted_at: inserted_at(),
-                        updated_at: updated_at(),
-                        expires_in: expiration(),
-                      }
+          inserted_at: inserted_at(),
+          updated_at: updated_at(),
+          expires_in: expiration()
+        }
 
   @derive Jason.Encoder
   @enforce_keys [:auth_data, :token, :metadata]
@@ -30,10 +30,10 @@ defmodule Auctoritas.DataStorage.RefreshTokenData do
   inserted when using `get_token_data` function from data_storage
   """
   @type t :: %__MODULE__{
-               auth_data: map(),
-               token: token(),
-               metadata: metadata()
-             }
+          auth_data: map(),
+          token: token(),
+          metadata: metadata()
+        }
 
   @spec new(refresh_token_data_map :: map()) :: %__MODULE__{}
   def new(refresh_token_data_map) when is_map(refresh_token_data_map) do
@@ -41,7 +41,8 @@ defmodule Auctoritas.DataStorage.RefreshTokenData do
   end
 
   @spec new(auth_data :: map(), token :: token(), expiration :: expiration()) :: %__MODULE__{}
-  def new(auth_data, token, expiration) when is_map(auth_data) and is_number(expiration) and is_bitstring(token) do
+  def new(auth_data, token, expiration)
+      when is_map(auth_data) and is_number(expiration) and is_bitstring(token) do
     new(%{auth_data: auth_data, token: token, metadata: initial_metadata(expiration)})
   end
 
@@ -70,7 +71,7 @@ defmodule Auctoritas.DataStorage.RefreshTokenData do
     %{
       inserted_at: System.system_time(:second),
       updated_at: System.system_time(:second),
-      expires_in: expiration,
+      expires_in: expiration
     }
   end
 

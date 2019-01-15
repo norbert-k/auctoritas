@@ -182,9 +182,14 @@ defmodule Auctoritas do
 
   def authenticate(pid, authentication_data) do
     case GenServer.call(pid, {:authenticate, authentication_data}) do
-      {:ok, token, data} -> {:ok, token, data}
-      {:ok, token, refresh_token, data, refresh_token_data} -> {:ok, token, refresh_token, data, refresh_token_data}
-      {:error, error} -> {:error, error}
+      {:ok, token, data} ->
+        {:ok, token, data}
+
+      {:ok, token, refresh_token, data, refresh_token_data} ->
+        {:ok, token, refresh_token, data, refresh_token_data}
+
+      {:error, error} ->
+        {:error, error}
     end
   end
 
@@ -198,40 +203,72 @@ defmodule Auctoritas do
 
   def refresh_token(pid, token) do
     case GenServer.call(pid, {:refresh_token, token}) do
-      {:ok, token, refresh_token, data, refresh_token_data} -> {:ok, token, refresh_token, data, refresh_token_data}
-      {:error, error} -> {:error, error}
+      {:ok, token, refresh_token, data, refresh_token_data} ->
+        {:ok, token, refresh_token, data, refresh_token_data}
+
+      {:error, error} ->
+        {:error, error}
     end
   end
 
-  @spec authenticate_check(%Config{}, map()) :: {:ok, token :: token(), %Data{}} | {:ok, token :: token(), refresh_token :: token(), %Data{}, %RefreshTokenData{}} | {:error, any()}
+  @spec authenticate_check(%Config{}, map()) ::
+          {:ok, token :: token(), %Data{}}
+          | {:ok, token :: token(), refresh_token :: token(), %Data{}, %RefreshTokenData{}}
+          | {:error, any()}
   defp authenticate_check(config, authentication_data) do
     case config.token_manager.generate_token_and_data(config.name, authentication_data) do
       {:ok, token, data_map} ->
         case config.token_type do
           :refresh_token ->
-
-            with {:ok, _token, %Data{} = data} <- config.data_storage.insert_token(config.name, config.expiration, token, data_map),
-                 {:ok, refresh_token} <- config.token_manager.generate_refresh_token(config.name, authentication_data),
-                 {:ok, _refresh_token, %RefreshTokenData{} = refresh_token_data} <- config.data_storage.insert_refresh_token(config.name, config.refresh_token_expiration, refresh_token, token, authentication_data) do
+            with {:ok, refresh_token} <-
+                   config.token_manager.generate_refresh_token(config.name, authentication_data),
+                  {:ok, _token, %Data{} = data} <-
+                   config.data_storage.insert_token(
+                     config.name,
+                     config.expiration,
+                     token,
+                     refresh_token,
+                     data_map
+                   ),
+                 {:ok, _refresh_token, %RefreshTokenData{} = refresh_token_data} <-
+                   config.data_storage.insert_refresh_token(
+                     config.name,
+                     config.refresh_token_expiration,
+                     refresh_token,
+                     token,
+                     authentication_data
+                   ) do
               {:ok, token, refresh_token, data, refresh_token_data}
             else
               {:error, error} -> {:error, error}
             end
+
           _ ->
-            with {:ok, token, %Data{} = data} <- config.data_storage.insert_token(config.name, config.expiration, token, data_map) do
+            with {:ok, token, %Data{} = data} <-
+                   config.data_storage.insert_token(
+                     config.name,
+                     config.expiration,
+                     token,
+                     data_map
+                   ) do
               {:ok, token, data}
             else
               {:error, error} -> {:error, error}
             end
         end
-      {:error, error} -> {:error, error}
+
+      {:error, error} ->
+        {:error, error}
     end
   end
 
-  @spec refresh_token_check(%Config{token_type: :refresh_token}, refresh_token :: token()) :: {:ok, token :: token(), refresh_token :: token(), %Data{}} | {:error, any()}
+  @spec refresh_token_check(%Config{token_type: :refresh_token}, refresh_token :: token()) ::
+          {:ok, token :: token(), refresh_token :: token(), %Data{}} | {:error, any()}
   defp refresh_token_check(%Config{token_type: :refresh_token} = config, refresh_token) do
-    with {:ok, %RefreshTokenData{:auth_data => auth_data, :token => token}} <- config.data_storage.get_refresh_token_data(config.name, refresh_token),
-         {:ok, new_token, new_refresh_token, data, refresh_token_data} <- authenticate_check(config, auth_data),
+    with {:ok, %RefreshTokenData{:auth_data => auth_data, :token => token}} <-
+           config.data_storage.get_refresh_token_data(config.name, refresh_token),
+         {:ok, new_token, new_refresh_token, data, refresh_token_data} <-
+           authenticate_check(config, auth_data),
          {:ok, true} <- config.data_storage.delete_token(config.name, token),
          {:ok, true} <- config.data_storage.delete_refresh_token(config.name, refresh_token) do
       {:ok, new_token, new_refresh_token, data, refresh_token_data}
@@ -350,14 +387,17 @@ defmodule Auctoritas do
   def get_tokens_with_data(pid, start, amount) do
     case get_tokens(pid, start, amount) do
       {:ok, tokens} ->
-        tokens = tokens
-        |> Enum.map(fn token ->
-          case get_token_data(pid, token, :silent) do
-            {:ok, token_data} -> token_data
-            {:error, error} -> {:error, error}
-          end
-        end)
+        tokens =
+          tokens
+          |> Enum.map(fn token ->
+            case get_token_data(pid, token, :silent) do
+              {:ok, token_data} -> token_data
+              {:error, error} -> {:error, error}
+            end
+          end)
+
         {:ok, tokens}
+
       {:error, error} ->
         {:error, error}
     end
@@ -402,7 +442,8 @@ defmodule Auctoritas do
     deauthenticate(auctoritas_name(@default_name), token, :refresh_token)
   end
 
-  def deauthenticate(name, token, :refresh_token) when is_bitstring(name) and is_bitstring(token) do
+  def deauthenticate(name, token, :refresh_token)
+      when is_bitstring(name) and is_bitstring(token) do
     deauthenticate(auctoritas_name(name), token, :refresh_token)
   end
 
@@ -455,7 +496,11 @@ defmodule Auctoritas do
     end
   end
 
-  def handle_call({:refresh_token, refresh_token}, _from, %Config{token_type: :refresh_token} = config) do
+  def handle_call(
+        {:refresh_token, refresh_token},
+        _from,
+        %Config{token_type: :refresh_token} = config
+      ) do
     case refresh_token_check(config, refresh_token) do
       {:ok, token, refresh_token, data, refresh_token_data} ->
         {:reply, {:ok, token, refresh_token, data, refresh_token_data}, config}
@@ -465,7 +510,11 @@ defmodule Auctoritas do
     end
   end
 
-  def handle_call({:authenticate, authentication_data}, _from, %Config{token_type: :refresh_token} = config) do
+  def handle_call(
+        {:authenticate, authentication_data},
+        _from,
+        %Config{token_type: :refresh_token} = config
+      ) do
     case authenticate_check(config, authentication_data) do
       {:ok, token, refresh_token, data, refresh_token_data} ->
         {:reply, {:ok, token, refresh_token, data, refresh_token_data}, config}
@@ -485,7 +534,11 @@ defmodule Auctoritas do
     end
   end
 
-  def handle_call({:get_token_data, :normal, token}, _from, %Config{token_type: :sliding} = config) do
+  def handle_call(
+        {:get_token_data, :normal, token},
+        _from,
+        %Config{token_type: :sliding} = config
+      ) do
     with {:ok, true} <- reset_token_expiration(config, token),
          {:ok, data} <- get_token_data_from_data_store(config, token) do
       {:reply, {:ok, data}, config}

@@ -10,8 +10,10 @@ defmodule AuctoritasTest.ConfigTest do
              data_storage: Auctoritas.AuthenticationManager.CachexDataStorage,
              token_manager: Auctoritas.AuthenticationManager.DefaultTokenManager,
              token_type: :sliding,
-             expiration: 60 * 60 * 24, # 1 day
-             refresh_token_expiration: 60 * 60 * 24 * 3 # 3 days
+             # 1 day
+             expiration: 60 * 60 * 24,
+             # 3 days
+             refresh_token_expiration: 60 * 60 * 24 * 3
            }
   end
 
@@ -23,8 +25,10 @@ defmodule AuctoritasTest.ConfigTest do
              data_storage: Auctoritas.AuthenticationManager.CachexDataStorage,
              token_manager: Auctoritas.AuthenticationManager.DefaultTokenManager,
              token_type: :sliding,
-             expiration: 60 * 60 * 24, # 1 day
-             refresh_token_expiration: 60 * 60 * 24 * 3 # 3 days
+             # 1 day
+             expiration: 60 * 60 * 24,
+             # 3 days
+             refresh_token_expiration: 60 * 60 * 24 * 3
            }
   end
 end

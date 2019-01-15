@@ -10,6 +10,9 @@ defmodule Auctoritas.DataStorage.Data do
   @typedoc "When was token updated (UNIX Epoch time)"
   @type updated_at() :: non_neg_integer()
 
+  @typedoc "Refresh token"
+  @type token() :: String.t()
+
   @type metadata() :: %{
           inserted_at: inserted_at(),
           updated_at: updated_at(),
@@ -17,8 +20,8 @@ defmodule Auctoritas.DataStorage.Data do
         }
 
   @derive Jason.Encoder
-  @enforce_keys [:data, :metadata]
-  defstruct [:data, :metadata]
+  @enforce_keys [:data, :refresh_token, :metadata]
+  defstruct [:data, :refresh_token, :metadata]
 
   @typedoc """
   Data struct with data and metadata maps
@@ -28,6 +31,7 @@ defmodule Auctoritas.DataStorage.Data do
   """
   @type t :: %__MODULE__{
           data: map(),
+          refresh_token: token() | nil,
           metadata: metadata()
         }
 
@@ -39,6 +43,11 @@ defmodule Auctoritas.DataStorage.Data do
   @spec new(data :: map(), expiration :: expiration()) :: %__MODULE__{}
   def new(data, expiration) when is_map(data) and is_number(expiration) do
     new(%{data: data, metadata: initial_metadata(expiration)})
+  end
+
+  @spec new(data :: map(), refresh_token :: token(), expiration :: expiration()) :: %__MODULE__{}
+  def new(data, refresh_token, expiration) when is_map(data) and is_number(expiration) do
+    new(%{data: data, refresh_token: refresh_token, metadata: initial_metadata(expiration)})
   end
 
   @spec update_data(data :: %__MODULE__{}, data :: map()) :: %__MODULE__{}
