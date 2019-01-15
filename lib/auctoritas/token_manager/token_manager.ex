@@ -38,8 +38,7 @@ defmodule Auctoritas.TokenManager do
         {:ok, SecureRandom.base64(64), authentication_data}
       end
 
-      @spec generate_refresh_token(name(), authentication_data :: map()) ::
-              {:ok, token()} | {:error, error :: any()}
+      @spec generate_refresh_token(name(), authentication_data :: map()) :: {:ok, token()} | {:error, error :: any()}
       def generate_refresh_token(_name, _authentication_data)
           when is_bitstring(_name)
           when is_map(_authentication_data) do

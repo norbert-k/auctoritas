@@ -122,7 +122,6 @@ defmodule Auctoritas.AuthenticationManager.CachexDataStorage do
     end)
   end
 
-
   @spec insert_refresh_token(
           name(),
           expiration(),
@@ -212,8 +211,7 @@ defmodule Auctoritas.AuthenticationManager.CachexDataStorage do
   * Name: Name from config
   * Token: Token to delete
   """
-  @spec delete_token(name(), token :: token()) ::
-          {atom(), any()} :: {:ok, boolean()} | {:error, error :: any()}
+  @spec delete_token(name(), token :: token()) :: {atom(), any()} :: {:ok, boolean()} | {:error, error :: any()}
   def delete_token(name, token) when is_bitstring(token) and is_bitstring(name) do
     Logger.info("Deleted token from [#{name}] cache, token:#{token}}")
 
@@ -323,9 +321,7 @@ defmodule Auctoritas.AuthenticationManager.CachexDataStorage do
 
     with {:ok, refresh_token_data} <- Cachex.get(cachex_refresh_name(name), token),
          {:ok, expiration} when is_number(expiration) <- refresh_token_expires?(name, token) do
-      {:ok,
-       %RefreshTokenData{} =
-         refresh_token_data |> RefreshTokenData.add_expiration(div(expiration, 1000))}
+      {:ok, %RefreshTokenData{} = refresh_token_data |> RefreshTokenData.add_expiration(div(expiration, 1000))}
     else
       {:ok, nil} -> {:error, "Data not found"}
       {:error, error} -> {:error, error}
@@ -385,9 +381,7 @@ defmodule Auctoritas.AuthenticationManager.CachexDataStorage do
   """
   @spec check_collision(name(), token()) :: boolean()
   def check_collision(name, token) when is_bitstring(name) and is_bitstring(token) do
-    Logger.info(
-      "Checking if token collides with existing token from [#{name}] cache, token:#{token}"
-    )
+    Logger.info("Checking if token collides with existing token from [#{name}] cache, token:#{token}")
 
     case get_token_data(name, token) do
       {:ok, _data} -> true

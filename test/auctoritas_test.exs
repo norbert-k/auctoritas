@@ -9,13 +9,9 @@ defmodule AuctoritasTest do
     AuthenticationSupervisor.start_link(Config.new(name: "static", token_type: :static))
     AuthenticationSupervisor.start_link(Config.new(name: "sliding", token_type: :sliding))
 
-    AuthenticationSupervisor.start_link(
-      Config.new(name: "refresh_token", token_type: :refresh_token)
-    )
+    AuthenticationSupervisor.start_link(Config.new(name: "refresh_token", token_type: :refresh_token))
 
-    AuthenticationSupervisor.start_link(
-      Config.new(name: "list_token", token_type: :refresh_token)
-    )
+    AuthenticationSupervisor.start_link(Config.new(name: "list_token", token_type: :refresh_token))
 
     :ok
   end
@@ -62,8 +58,7 @@ defmodule AuctoritasTest do
   test "Refresh token test" do
     auth_data = %{user_id: 1}
 
-    {:ok, token, refresh_token, data, auth_data} =
-      Auctoritas.authenticate("refresh_token", auth_data)
+    {:ok, token, refresh_token, data, auth_data} = Auctoritas.authenticate("refresh_token", auth_data)
 
     {:ok, got_data} = Auctoritas.get_token_data("refresh_token", token)
 
@@ -71,14 +66,15 @@ defmodule AuctoritasTest do
 
     {:ok, true} = Auctoritas.deauthenticate("refresh_token", token, :token)
 
-    {:ok, new_token, refresh_token, data, auth_data} =
-      Auctoritas.refresh_token("refresh_token", refresh_token)
+    {:ok, new_token, refresh_token, data, auth_data} = Auctoritas.refresh_token("refresh_token", refresh_token)
 
     {:ok, got_data} = Auctoritas.get_token_data("refresh_token", new_token)
 
     assert got_data.data == data.data
 
     {:ok, true} = Auctoritas.deauthenticate("refresh_token", refresh_token, :refresh_token)
+    {:error, error} = Auctoritas.get_token_data("refresh_token", new_token)
+
 
     {:error, error} = Auctoritas.refresh_token("refresh_token", refresh_token)
 

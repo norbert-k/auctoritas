@@ -53,8 +53,7 @@ defmodule Auctoritas.DataStorage do
   @doc """
   Delete token from data_storage, used when deauthenticating (logging out)
   """
-  @callback delete_token(name(), token :: token()) ::
-              {atom(), any()} :: {:ok, boolean()} | {:error, error :: any()}
+  @callback delete_token(name(), token :: token()) :: {atom(), any()} :: {:ok, boolean()} | {:error, error :: any()}
 
   @callback delete_refresh_token(name(), refresh_token :: token()) ::
               {atom(), any()} :: {:ok, boolean()} | {:error, error :: any()}
