@@ -34,7 +34,7 @@ defmodule Auctoritas.Config do
     name: "auctoritas_default",
     data_storage: CachexDataStorage,
     token_manager: DefaultTokenManager,
-    token_type: :sliding,
+    token_type: :refresh_token,
     # 1 day
     expiration: 60 * 60 * 24,
     # 3 days

@@ -98,8 +98,8 @@ defmodule Auctoritas do
       {:ok, token, data} ->
         {:ok, token, data}
 
-      {:ok, token, refresh_token, data, refresh_token_data} ->
-        {:ok, token, refresh_token, data, refresh_token_data}
+      {:ok, token, refresh_token, data, auth_data} ->
+        {:ok, token, refresh_token, data, auth_data}
 
       {:error, error} ->
         {:error, error}
@@ -116,8 +116,8 @@ defmodule Auctoritas do
 
   def refresh_token(pid, token) do
     case GenServer.call(pid, {:refresh_token, token}) do
-      {:ok, token, refresh_token, data, refresh_token_data} ->
-        {:ok, token, refresh_token, data, refresh_token_data}
+      {:ok, token, refresh_token, data, auth_data} ->
+        {:ok, token, refresh_token, data, auth_data}
 
       {:error, error} ->
         {:error, error}
@@ -251,6 +251,21 @@ defmodule Auctoritas do
     end
   end
 
+  def get_refresh_token_data(refresh_token) do
+    get_refresh_token_data(@default_name, refresh_token)
+  end
+
+  def get_refresh_token_data(name, refresh_token) when is_bitstring(name) do
+    get_refresh_token_data(auctoritas_name(name), refresh_token)
+  end
+
+  def get_refresh_token_data(pid, refresh_token) do
+    case GenServer.call(pid, {:get_refresh_token_data, refresh_token}) do
+      {:ok, auth_data} -> {:ok, auth_data}
+      {:error, error} -> {:error, error}
+    end
+  end
+
   def get_tokens(start, amount) do
     get_tokens(@default_name, start, amount)
   end
@@ -366,6 +381,13 @@ defmodule Auctoritas do
     end
   end
 
+  defp get_refresh_token_data_from_data_store(config, refresh_token) do
+    case config.data_storage.get_refresh_token_data(config.name, refresh_token) do
+      {:ok, auth_data} -> {:ok, auth_data}
+      {:error, error} -> {:error, error}
+    end
+  end
+
   defp reset_token_expiration(config, token) do
     case config.data_storage.reset_expiration(config.name, token, config.expiration) do
       {:ok, data} -> {:ok, data}
@@ -382,8 +404,8 @@ defmodule Auctoritas do
 
   defp delete_refresh_token_from_data_store(config, token) do
     with {:ok, data} <- config.data_storage.get_refresh_token_data(config.name, token),
-         {:ok, true} <- config.data_storage.delete_token(config.name, data.token),
-         {:ok, true} <- config.data_storage.delete_refresh_token(config.name, token)do
+         {:ok, true} <- config.data_storage.delete_refresh_token(config.name, token) do
+      config.data_storage.delete_token(config.name, data.token)
       {:ok, true}
     else
       {:error, error} -> {:error, error}
@@ -439,6 +461,19 @@ defmodule Auctoritas do
 
       {:error, error} ->
         {:reply, {:error, error}, config}
+    end
+  end
+
+  def handle_call(
+        {:get_refresh_token_data, refresh_token},
+        _from,
+        %Config{token_type: :refresh_token} = config
+      ) do
+    with {:ok, auth_data} <- get_refresh_token_data_from_data_store(config, refresh_token) do
+      {:reply, {:ok, auth_data}, config}
+    else
+      {:ok, false} -> {:reply, {:error, "Refresh token expired or doesn't exist"}, config}
+      {:error, error} -> {:reply, {:error, error}, config}
     end
   end
 

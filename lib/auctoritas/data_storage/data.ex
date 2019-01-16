@@ -50,6 +50,21 @@ defmodule Auctoritas.DataStorage.Data do
     new(%{data: data, refresh_token: refresh_token, metadata: initial_metadata(expiration)})
   end
 
+  @spec get_data(data :: %__MODULE__{}) :: map()
+  def get_data(%__MODULE__{} = data) do
+    data.data
+  end
+
+  @spec get_metadata(data :: %__MODULE__{}) :: map()
+  def get_metadata(%__MODULE__{} = data) do
+    data.metadata
+  end
+
+  @spec get_refresh_token(data :: %__MODULE__{}) :: token()
+  def get_refresh_token(%__MODULE__{} = data) do
+    data.refresh_token
+  end
+
   @spec update_data(data :: %__MODULE__{}, data :: map()) :: %__MODULE__{}
   def update_data(%__MODULE__{} = data, new_data) when is_map(new_data) do
     data

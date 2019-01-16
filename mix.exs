@@ -45,7 +45,8 @@ defmodule Auctoritas.MixProject do
       {:dialyxir, "~> 0.5", only: [:dev], runtime: false},
       {:secure_random, "~> 0.5"},
       {:cachex, "~> 3.1"},
-      {:jason, "~> 1.1"}
+      {:jason, "~> 1.1"},
+      {:credo, "~> 1.0.0", only: [:dev, :test], runtime: false}
     ]
   end
 end

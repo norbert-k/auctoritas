@@ -8,9 +8,7 @@ defmodule AuctoritasTest do
     IO.puts("Starting Auctoritas supervisors")
     AuthenticationSupervisor.start_link(Config.new(name: "static", token_type: :static))
     AuthenticationSupervisor.start_link(Config.new(name: "sliding", token_type: :sliding))
-
     AuthenticationSupervisor.start_link(Config.new(name: "refresh_token", token_type: :refresh_token))
-
     AuthenticationSupervisor.start_link(Config.new(name: "list_token", token_type: :refresh_token))
 
     :ok
